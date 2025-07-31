@@ -1,13 +1,23 @@
-import { Button, Card, Form, Input, message, Popconfirm, Table } from "antd";
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  message,
+  Popconfirm,
+  Table,
+  Dropdown,
+  Menu,
+} from "antd";
 import Adminlayout from "../../Layout/Adminlayout";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, EllipsisOutlined } from "@ant-design/icons";
 import { trimData, http } from "../../../modules/modules";
 const { Item } = Form;
 import { useEffect, useState } from "react";
 import { useTheme } from "../../Layout/Theme/ThemeContext";
 
 const Currency = () => {
-  //state collection
+  // state collection
   const [currencyFORM] = Form.useForm();
   const [loading, setLoadig] = useState(false);
   const [messageApi, context] = message.useMessage();
@@ -100,14 +110,12 @@ const Currency = () => {
     }
   };
 
-// Common style for yellow text + blue gradient
-
-const headerStyle = {
-  background: "linear-gradient(to right, #0a198b, #1e3a8a)",
-  color: "#facc15", // yellow text
-  fontWeight: "bold",
-};
-
+  // Common style for yellow text + blue gradient
+  const headerStyle = {
+    background: "linear-gradient(to right, #0a198b, #1e3a8a)",
+    color: "#facc15", // yellow text
+    fontWeight: "bold",
+  };
 
   // columns for table
   const columns = [
@@ -130,39 +138,70 @@ const headerStyle = {
       key: "action",
       fixed: "right",
       render: (_, obj) => (
-        <div className="flex gap-1">
-          <Popconfirm
-            title="Are you sure ?"
-            description="Once you update,you can also re-update !"
-            onCancel={() => messageApi.info("No changes occur !")}
-            onConfirm={() => onEditCurrency(obj)}
-          >
-            <Button
-              type="text"
-              style={{
-                background: "linear-gradient(to right, #3b82f6, #2563eb)",
-                color: "#fff",
-              }}
-              icon={<EditOutlined />}
-            ></Button>
-          </Popconfirm>
+        <>
+          {/* Desktop buttons */}
+          <div className="hidden md:flex gap-1">
+            <Popconfirm
+              title="Are you sure ?"
+              description="Once you update, you can also re-update!"
+              onCancel={() => messageApi.info("No changes occur!")}
+              onConfirm={() => onEditCurrency(obj)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #3b82f6, #2563eb)",
+                  color: "#fff",
+                }}
+                icon={<EditOutlined />}
+                size="small"
+              />
+            </Popconfirm>
 
-          <Popconfirm
-            title="Are you sure ?"
-            description="Once you deleted,you can not re-store !"
-            onCancel={() => messageApi.info("your data is safe !")}
-            onConfirm={() => onDeleteCurrency(obj._id)}
-          >
-            <Button
-              type="text"
-              style={{
-                background: "linear-gradient(to right, #f43f5e, #e11d48)",
-                color: "#fff",
-              }}
-              icon={<DeleteOutlined />}
-            ></Button>
-          </Popconfirm>
-        </div>
+            <Popconfirm
+              title="Are you sure ?"
+              description="Once you delete, you cannot restore it!"
+              onCancel={() => messageApi.info("Your data is safe!")}
+              onConfirm={() => onDeleteCurrency(obj._id)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #f43f5e, #e11d48)",
+                  color: "#fff",
+                }}
+                icon={<DeleteOutlined />}
+                size="small"
+              />
+            </Popconfirm>
+          </div>
+
+          {/* Mobile Dropdown */}
+          <div className="flex md:hidden">
+            <Dropdown
+              overlay={
+                <Menu>
+                  <Menu.Item key="edit" onClick={() => onEditCurrency(obj)}>
+                    Edit
+                  </Menu.Item>
+                  <Menu.Item
+                    key="delete"
+                    danger
+                    onClick={() => onDeleteCurrency(obj._id)}
+                  >
+                    Delete
+                  </Menu.Item>
+                </Menu>
+              }
+              trigger={["click"]}
+            >
+              <Button
+                type="text"
+                icon={<EllipsisOutlined style={{ fontSize: 20 }} />}
+              />
+            </Dropdown>
+          </div>
+        </>
       ),
     },
   ];
@@ -171,16 +210,15 @@ const headerStyle = {
     <Adminlayout>
       {context}
       <h1 className="grid md:grid-cols-3 gap-3">
-    <Card
-  title="Add new currency"
-  headStyle={headerStyle}
-  style={{
-    background: theme.cardBg,
-    border: theme.border,
-    color: theme.text,
-  }}
->
-
+        <Card
+          title="Add new currency"
+          headStyle={headerStyle}
+          style={{
+            background: theme.cardBg,
+            border: theme.border,
+            color: theme.text,
+          }}
+        >
           <Form
             form={currencyFORM}
             onFinish={edit ? onUpdate : onFinish}
@@ -191,7 +229,9 @@ const headerStyle = {
               label="Currency name"
               rules={[{ required: true }]}
             >
-              <Input style={{ background: theme.cardBg, color: theme.text }} />
+              <Input
+                style={{ background: theme.cardBg, color: theme.text }}
+              />
             </Item>
 
             <Item label="Currency description" name="currencyDesc">
@@ -233,18 +273,17 @@ const headerStyle = {
           </Form>
         </Card>
 
-<Card
-  className="md:col-span-2"
-  title="Currency list"
-  headStyle={headerStyle}
-  style={{
-    overflowX: "auto",
-    background: theme.cardBg,
-    border: theme.border,
-    color: theme.text,
-  }}
->
-
+        <Card
+          className="md:col-span-2"
+          title="Currency list"
+          headStyle={headerStyle}
+          style={{
+            overflowX: "auto",
+            background: theme.cardBg,
+            border: theme.border,
+            color: theme.text,
+          }}
+        >
           <Table
             columns={columns}
             dataSource={allCurrency}
