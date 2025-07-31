@@ -8,6 +8,8 @@ import {
   Popconfirm,
   Select,
   Table,
+  Dropdown,
+  Menu,
 } from "antd";
 import Adminlayout from "../../Layout/Adminlayout";
 import {
@@ -15,6 +17,7 @@ import {
   EditOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  EllipsisOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import { trimData, http, fetchData, uploadFile } from "../../../modules/modules";
@@ -23,7 +26,7 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 
 const NewEmployee = () => {
-  //state collection
+  // state
   const [empForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState(null);
@@ -34,7 +37,7 @@ const NewEmployee = () => {
   const [no, setNo] = useState(0);
   const [edit, setEdit] = useState(null);
 
-  // get branch data
+  // branches
   const { data: branches } = useSWR("/api/branch", fetchData, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -54,7 +57,7 @@ const NewEmployee = () => {
     }
   }, [branches]);
 
-  // get all employee data
+  // employees
   useEffect(() => {
     const fetcher = async () => {
       try {
@@ -69,7 +72,7 @@ const NewEmployee = () => {
     fetcher();
   }, [no]);
 
-  // create new employee
+  // create employee
   const onFinish = async (values) => {
     try {
       setLoading(true);
@@ -78,12 +81,11 @@ const NewEmployee = () => {
       finalObj.key = finalObj.email;
       finalObj.userType = "employee";
       const httpReq = http();
-      const { data } = await httpReq.post(`/api/users`, finalObj);
-      const obj = {
+      await httpReq.post(`/api/users`, finalObj);
+      await httpReq.post(`/api/send-email`, {
         email: finalObj.email,
         password: finalObj.password,
-      };
-      await httpReq.post(`/api/send-email`, obj);
+      });
       messageApi.success("Employee created");
       empForm.resetFields();
       setPhoto(null);
@@ -104,34 +106,32 @@ const NewEmployee = () => {
     }
   };
 
-  // update isActive
+  // toggle active
   const updateIsActive = async (id, isActive) => {
     try {
-      const obj = {
-        isActive: !isActive,
-      };
+      const obj = { isActive: !isActive };
       const httpReq = http();
       await httpReq.put(`/api/users/${id}`, obj);
-      messageApi.success("Record updated successfully !");
+      messageApi.success("Record updated successfully!");
       setNo(no + 1);
-    } catch (err) {
-      messageApi.error("Unable to update isActive !");
+    } catch {
+      messageApi.error("Unable to update isActive!");
     }
   };
 
-  //delete employee
+  // delete
   const onDeleteUser = async (id) => {
     try {
       const httpReq = http();
       await httpReq.delete(`/api/users/${id}`);
-      messageApi.success("Employee deleted successfully !");
+      messageApi.success("Employee deleted successfully!");
       setNo(no + 1);
-    } catch (err) {
-      messageApi.error("Unable to delete user !");
+    } catch {
+      messageApi.error("Unable to delete user!");
     }
   };
 
-  //update employee
+  // edit
   const onEditUser = async (obj) => {
     setEdit(obj);
     empForm.setFieldsValue(obj);
@@ -142,68 +142,60 @@ const NewEmployee = () => {
       setLoading(true);
       let finalObj = trimData(values);
       delete finalObj.password;
-      if (photo) {
-        finalObj.profile = photo;
-      }
+      if (photo) finalObj.profile = photo;
       const httpReq = http();
       await httpReq.put(`/api/users/${edit._id}`, finalObj);
-      messageApi.success("Employee updated successfully !");
+      messageApi.success("Employee updated successfully!");
       setNo(no + 1);
       setEdit(null);
       setPhoto(null);
       empForm.resetFields();
-    } catch (err) {
-      messageApi.error("Unable to update employee !");
+    } catch {
+      messageApi.error("Unable to update employee!");
     } finally {
       setLoading(false);
     }
   };
 
-  //handle upload
+  // upload photo
   const handleUpload = async (e) => {
     let file = e.target.files[0];
     const folderName = "employeePhoto";
     try {
       const result = await uploadFile(file, folderName);
       setPhoto(result.filePath);
-    } catch (err) {
+    } catch {
       messageApi.error("Unable to upload");
     }
   };
 
-  //search
+  // search
   const onSearch = (e) => {
     let val = e.target.value.toLowerCase();
     let filter =
       finalEmployee &&
       finalEmployee.filter((emp) => {
-        if (emp?.email.toLowerCase().indexOf(val) != -1) {
-          return emp;
-        } else if (emp?.mobile.toLowerCase().indexOf(val) != -1) {
-          return emp;
-        } else if (emp?.userType.toLowerCase().indexOf(val) != -1) {
-          return emp;
-        } else if (emp?.address.toLowerCase().indexOf(val) != -1) {
-          return emp;
-        } else if (emp?.branch.toLowerCase().indexOf(val) != -1) {
-          return emp;
-        } else if (emp?.fullname.toLowerCase().indexOf(val) != -1) {
+        if (
+          emp?.email.toLowerCase().includes(val) ||
+          emp?.mobile.toLowerCase().includes(val) ||
+          emp?.userType.toLowerCase().includes(val) ||
+          emp?.address.toLowerCase().includes(val) ||
+          emp?.branch.toLowerCase().includes(val) ||
+          emp?.fullname.toLowerCase().includes(val)
+        ) {
           return emp;
         }
       });
     setAllEmployee(filter);
   };
 
-
-
   const headerStyle = {
-  background: "linear-gradient(to right, #0a198b, #1e3a8a)", // Blue gradient
-  color: "#facc15", // Yellow text
-  fontWeight: "bold",
-};
+    background: "linear-gradient(to right, #0a198b, #1e3a8a)",
+    color: "#facc15",
+    fontWeight: "bold",
+  };
 
-
-  // columns for table
+  // columns
   const columns = [
     {
       title: "Profile",
@@ -212,8 +204,8 @@ const NewEmployee = () => {
         <Image
           src={`${import.meta.env.VITE_BASEURL}/${obj.profile}`}
           className="rounded-full"
-          width={40}
-          height={40}
+          width={32}
+          height={32}
         />
       ),
     },
@@ -221,97 +213,128 @@ const NewEmployee = () => {
       title: "User type",
       dataIndex: "userType",
       key: "userType",
-      render: (text) => {
-        if (text == "admin") {
-          return <span style={{ color: "#f97316", fontWeight: 600 }}>{text}</span>;
-        } else if (text == "employee") {
-          return <span style={{ color: "#22c55e", fontWeight: 600 }}>{text}</span>;
-        } else {
-          return <span style={{ color: "#3b82f6", fontWeight: 600 }}>{text}</span>;
-        }
-      },
+      render: (text) => (
+        <span
+          className={`font-semibold ${
+            text === "admin"
+              ? "text-orange-500"
+              : text === "employee"
+              ? "text-green-500"
+              : "text-blue-500"
+          } text-xs sm:text-sm md:text-base`}
+        >
+          {text}
+        </span>
+      ),
     },
     {
       title: "Branch",
       dataIndex: "branch",
       key: "branch",
+      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
     },
     {
       title: "Fullname",
       dataIndex: "fullname",
       key: "fullname",
+      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
+      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
     },
     {
       title: "Mobile",
       dataIndex: "mobile",
       key: "mobile",
+      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
     },
     {
       title: "Address",
       dataIndex: "address",
       key: "address",
+      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
     },
     {
       title: "Action",
       key: "action",
       fixed: "right",
       render: (_, obj) => (
-        <div className="flex gap-1">
-          <Popconfirm
-            title="Are you sure ?"
-            description="Once you update, you can also re-update !"
-            onCancel={() => messageApi.info("No changes occur !")}
-            onConfirm={() => updateIsActive(obj._id, obj.isActive)}
-          >
-            <Button
-              type="text"
-              style={{
-                background: obj.isActive
-                  ? "linear-gradient(to right, #14b8a6, #0d9488)"
-                  : "#6b7280",
-                color: "#fff",
-              }}
-              icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
-            ></Button>
-          </Popconfirm>
+        <>
+          {/* Desktop Buttons */}
+          <div className="hidden md:flex gap-1">
+            <Popconfirm
+              title="Toggle active?"
+              onConfirm={() => updateIsActive(obj._id, obj.isActive)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: obj.isActive
+                    ? "linear-gradient(to right, #14b8a6, #0d9488)"
+                    : "#6b7280",
+                  color: "#fff",
+                }}
+                icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+              />
+            </Popconfirm>
 
-          <Popconfirm
-            title="Are you sure ?"
-            description="Once you update, you can also re-update !"
-            onCancel={() => messageApi.info("No changes occur !")}
-            onConfirm={() => onEditUser(obj)}
-          >
-            <Button
-              type="text"
-              style={{
-                background: "linear-gradient(to right, #3b82f6, #2563eb)",
-                color: "#fff",
-              }}
-              icon={<EditOutlined />}
-            ></Button>
-          </Popconfirm>
+            <Popconfirm
+              title="Edit Employee?"
+              onConfirm={() => onEditUser(obj)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #3b82f6, #2563eb)",
+                  color: "#fff",
+                }}
+                icon={<EditOutlined />}
+              />
+            </Popconfirm>
 
-          <Popconfirm
-            title="Are you sure ?"
-            description="Once you deleted, you cannot re-store !"
-            onCancel={() => messageApi.info("your data is safe !")}
-            onConfirm={() => onDeleteUser(obj._id)}
-          >
-            <Button
-              type="text"
-              style={{
-                background: "linear-gradient(to right, #f43f5e, #e11d48)",
-                color: "#fff",
-              }}
-              icon={<DeleteOutlined />}
-            ></Button>
-          </Popconfirm>
-        </div>
+            <Popconfirm
+              title="Delete Employee?"
+              onConfirm={() => onDeleteUser(obj._id)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #f43f5e, #e11d48)",
+                  color: "#fff",
+                }}
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          </div>
+
+          {/* Mobile Dropdown */}
+          <div className="flex md:hidden">
+            <Dropdown
+              overlay={
+                <Menu>
+                  <Menu.Item
+                    key="toggle"
+                    onClick={() => updateIsActive(obj._id, obj.isActive)}
+                  >
+                    {obj.isActive ? "Deactivate" : "Activate"}
+                  </Menu.Item>
+                  <Menu.Item key="edit" onClick={() => onEditUser(obj)}>
+                    Edit
+                  </Menu.Item>
+                  <Menu.Item key="delete" danger onClick={() => onDeleteUser(obj._id)}>
+                    Delete
+                  </Menu.Item>
+                </Menu>
+              }
+              trigger={["click"]}
+            >
+              <Button type="text" icon={<EllipsisOutlined style={{ fontSize: 20 }} />} />
+            </Dropdown>
+          </div>
+        </>
       ),
     },
   ];
@@ -319,21 +342,18 @@ const NewEmployee = () => {
   return (
     <Adminlayout>
       {context}
-      <h1 className="grid md:grid-cols-3 gap-3">
-      <Card title="Add new employee" headStyle={headerStyle}>
-          <Form
-            form={empForm}
-            onFinish={edit ? onUpdate : onFinish}
-            layout="vertical"
-          >
+      <h1 className="grid md:grid-cols-3 gap-1 sm:gap-3 px-0">
+        {/* Add Employee */}
+        <Card title="Add new employee" headStyle={headerStyle} className="text-xs sm:text-sm md:text-base p-2 sm:p-4">
+          <Form form={empForm} onFinish={edit ? onUpdate : onFinish} layout="vertical">
             <Item name="branch" label="Select Branch" rules={[{ required: true }]}>
-              <Select placeholder="Select Branch" options={allBranch}></Select>
+              <Select placeholder="Select Branch" options={allBranch} />
             </Item>
 
             <Item label="Profile" name="photo">
               <Input onChange={handleUpload} type="file" />
             </Item>
-            <div className="grid md:grid-cols-2 gap-x-2">
+            <div className="grid md:grid-cols-2 gap-2">
               <Item name="fullname" label="Fullname" rules={[{ required: true }]}>
                 <Input />
               </Item>
@@ -376,27 +396,29 @@ const NewEmployee = () => {
           </Form>
         </Card>
 
+        {/* Employee List */}
         <Card
-  className="md:col-span-2"
-  title="Employee list"
-  headStyle={headerStyle}
-  style={{ overflowX: "auto" }}
-  extra={
-    <div>
-      <Input
-        placeholder="Search by all"
-        prefix={<SearchOutlined />}
-        onChange={onSearch}
-      />
-    </div>
-  }
->
-  <Table
-    columns={columns}
-    dataSource={allEmployee}
-    scroll={{ x: "max-content" }}
-  />
-</Card>
+          className="md:col-span-2 text-xs sm:text-sm md:text-base p-2 sm:p-4"
+          title="Employee list"
+          headStyle={headerStyle}
+          style={{ overflowX: "auto" }}
+          extra={
+            <div>
+              <Input
+                placeholder="Search by all"
+                prefix={<SearchOutlined />}
+                onChange={onSearch}
+              />
+            </div>
+          }
+        >
+          <Table
+            columns={columns}
+            dataSource={allEmployee}
+            scroll={{ x: "max-content" }}
+            pagination={false}
+          />
+        </Card>
       </h1>
     </Adminlayout>
   );
