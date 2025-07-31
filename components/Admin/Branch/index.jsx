@@ -1,12 +1,12 @@
-import { Button, Card, Form, Input, message, Popconfirm, Table } from "antd";
+import { Button, Card, Form, Input, message, Popconfirm, Table, Dropdown, Menu } from "antd";
 import Adminlayout from "../../Layout/Adminlayout";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, EllipsisOutlined } from "@ant-design/icons";
 import { trimData, http } from "../../../modules/modules";
 const { Item } = Form;
 import { useEffect, useState } from "react";
 
 const Branch = () => {
-  // State
+  // State collection
   const [branchFORM] = Form.useForm();
   const [loading, setLoadig] = useState(false);
   const [messageApi, context] = message.useMessage();
@@ -14,7 +14,7 @@ const Branch = () => {
   const [no, setNo] = useState(0);
   const [edit, setEdit] = useState(null);
 
-  // Fetch branch data
+  // Get branch data
   useEffect(() => {
     const fetcher = async () => {
       try {
@@ -60,14 +60,14 @@ const Branch = () => {
     try {
       const httpReq = http();
       await httpReq.delete(`/api/branch/${id}`);
-      messageApi.success("Branch deleted successfully!");
+      messageApi.success("Branch deleted successfully !");
       setNo(no + 1);
     } catch (err) {
-      messageApi.error("Unable to delete branch!");
+      messageApi.error("Unable to delete branch !");
     }
   };
 
-  // Edit branch
+  // Update branch
   const onEditBranch = async (obj) => {
     setEdit(obj);
     branchFORM.setFieldsValue(obj);
@@ -75,16 +75,16 @@ const Branch = () => {
 
   const onUpdate = async (values) => {
     try {
-      setLoadig(true);
+      setLoadig(false);
       let finalObj = trimData(values);
       const httpReq = http();
       await httpReq.put(`/api/branch/${edit._id}`, finalObj);
-      messageApi.success("Branch updated successfully!");
+      messageApi.success("Branch updated successfully !");
       setNo(no + 1);
       setEdit(null);
       branchFORM.resetFields();
     } catch (err) {
-      messageApi.error("Unable to update branch!");
+      messageApi.error("Unable to update branch !");
     } finally {
       setLoadig(false);
     }
@@ -102,50 +102,77 @@ const Branch = () => {
       title: "Branch Address",
       dataIndex: "branchAddress",
       key: "branchAddress",
-      ellipsis: true, // truncate long addresses on small screens
+      ellipsis: true,
     },
     {
       title: "Action",
       key: "action",
       fixed: "right",
       render: (_, obj) => (
-        <div className="flex gap-1">
-          {/* Edit Button */}
-          <Popconfirm
-            title="Are you sure?"
-            description="Once you update, you can also re-update!"
-            onCancel={() => messageApi.info("No changes occur!")}
-            onConfirm={() => onEditBranch(obj)}
-          >
-            <Button
-              type="text"
-              style={{
-                background: "linear-gradient(to right, #3b82f6, #2563eb)",
-                color: "#fff",
-              }}
-              icon={<EditOutlined />}
-              size="small"
-            />
-          </Popconfirm>
+        <>
+          {/* Desktop Buttons */}
+          <div className="hidden md:flex gap-1">
+            <Popconfirm
+              title="Are you sure?"
+              description="Once you update, you can also re-update!"
+              onCancel={() => messageApi.info("No changes occur!")}
+              onConfirm={() => onEditBranch(obj)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #3b82f6, #2563eb)",
+                  color: "#fff",
+                }}
+                icon={<EditOutlined />}
+                size="small"
+              />
+            </Popconfirm>
 
-          {/* Delete Button */}
-          <Popconfirm
-            title="Are you sure?"
-            description="Once you delete, you cannot restore it!"
-            onCancel={() => messageApi.info("Your data is safe!")}
-            onConfirm={() => onDeleteBranch(obj._id)}
-          >
-            <Button
-              type="text"
-              style={{
-                background: "linear-gradient(to right, #f43f5e, #e11d48)",
-                color: "#fff",
-              }}
-              icon={<DeleteOutlined />}
-              size="small"
-            />
-          </Popconfirm>
-        </div>
+            <Popconfirm
+              title="Are you sure?"
+              description="Once you delete, you cannot restore it!"
+              onCancel={() => messageApi.info("Your data is safe!")}
+              onConfirm={() => onDeleteBranch(obj._id)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #f43f5e, #e11d48)",
+                  color: "#fff",
+                }}
+                icon={<DeleteOutlined />}
+                size="small"
+              />
+            </Popconfirm>
+          </div>
+
+          {/* Mobile Dropdown (Three Dots) */}
+          <div className="flex md:hidden">
+            <Dropdown
+              overlay={
+                <Menu>
+                  <Menu.Item key="edit" onClick={() => onEditBranch(obj)}>
+                    Edit
+                  </Menu.Item>
+                  <Menu.Item
+                    key="delete"
+                    danger
+                    onClick={() => onDeleteBranch(obj._id)}
+                  >
+                    Delete
+                  </Menu.Item>
+                </Menu>
+              }
+              trigger={["click"]}
+            >
+              <Button
+                type="text"
+                icon={<EllipsisOutlined style={{ fontSize: 20 }} />}
+              />
+            </Dropdown>
+          </div>
+        </>
       ),
     },
   ];
@@ -153,13 +180,13 @@ const Branch = () => {
   return (
     <Adminlayout>
       {context}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <h1 className="grid md:grid-cols-3 gap-3">
         {/* Add New Branch Card */}
         <Card
           title="Add new branch"
           headStyle={{
-            background: "linear-gradient(to right, #0a198b, #1e3a8a)",
-            color: "#facc15",
+            background: "linear-gradient(to right, #0a198b, #1e3a8a)", // Blue gradient
+            color: "#facc15", // Yellow text
             fontWeight: "bold",
           }}
         >
@@ -177,7 +204,7 @@ const Branch = () => {
             </Item>
 
             <Item label="Branch address" name="branchAddress">
-              <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
+              <Input.TextArea />
             </Item>
             <Item>
               {edit ? (
@@ -218,28 +245,23 @@ const Branch = () => {
           className="md:col-span-2"
           title="Branch list"
           headStyle={{
-            background: "linear-gradient(to right, #0a198b, #1e3a8a)",
+            background: "linear-gradient(to right, #0a198b, #1e3a8a)", // Blue gradient
             color: "#facc15",
             fontWeight: "bold",
           }}
-          bodyStyle={{
-            overflowX: "auto",
-            padding: "0.5rem",
-          }}
+          style={{ overflowX: "auto" }}
         >
           <Table
             columns={columns}
             dataSource={allBranch}
-            scroll={{ x: 600 }} // enable horizontal scroll for small screens
+            scroll={{ x: "max-content" }}
             pagination={false}
-            size="small"
-            rowKey="_id"
             style={{
               border: "1px solid #e5e7eb",
             }}
           />
         </Card>
-      </div>
+      </h1>
     </Adminlayout>
   );
 };
