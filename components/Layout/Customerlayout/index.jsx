@@ -264,7 +264,7 @@ const Customerlayout = ({ children }) => {
               }
               style={{ fontSize: '20px', color: '#fff', marginRight: 16 }}
             />
-            <h1 style={{ color: '#facc15', margin: 0, fontSize: 20 }}>Customer Panel</h1>
+            <h1 style={{ color: '#facc15', margin: 0, fontSize: 20 }}>Customer</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Switch
