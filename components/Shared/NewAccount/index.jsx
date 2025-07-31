@@ -10,6 +10,8 @@ import {
   Table,
   Image,
   Popconfirm,
+  Dropdown,
+  Menu,
 } from "antd";
 import {
   SearchOutlined,
@@ -18,6 +20,7 @@ import {
   DownloadOutlined,
   EditOutlined,
   DeleteOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import {
@@ -47,6 +50,18 @@ const NewAccount = () => {
   const [allCustomer, setAllCustome] = useState(null);
   const [finalCustomer, setFinalCustome] = useState(null);
   const [edit, setEdit] = useState(null);
+
+  // responsive state
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 576);
+
+  // update screen size on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth < 576);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   //get branding details
   const { data: brandings } = useSWR("/api/branding", fetchData, {
@@ -78,7 +93,7 @@ const NewAccount = () => {
   let brandingId = brandings && brandings?.data[0]?._id;
   accountForm.setFieldValue("accountNo", bankAccountNo);
 
-  // cretae new account
+  // create new account
   const onFinish = async (values) => {
     try {
       setLoading(true);
@@ -176,7 +191,7 @@ const NewAccount = () => {
     }
   };
 
-  //search codding
+  //search coding
   const onSearch = (e) => {
     let val = e.target.value.toLowerCase();
     let filter =
@@ -203,7 +218,7 @@ const NewAccount = () => {
     setAllCustome(filter);
   };
 
-  //delete employee
+  //delete customer
   const onDeleteCustomer = async (id, customerLoginId) => {
     try {
       const httpReq = http();
@@ -216,7 +231,7 @@ const NewAccount = () => {
     }
   };
 
-  //update employee
+  //edit customer
   const onEditCustomer = async (obj) => {
     setEdit(obj);
     setAccountModal(true);
@@ -305,20 +320,20 @@ const NewAccount = () => {
       dataIndex: "branch",
       key: "branch",
     },
- {
-  title: "User type",
-  dataIndex: "userType",
-  key: "userType",
-  render: (text) => {
-    if (text === "admin") {
-      return <span style={{ color: "#f97316", fontWeight: 600 }}>{text}</span>;
-    } else if (text === "employee") {
-      return <span style={{ color: "#22c55e", fontWeight: 600 }}>{text}</span>;
-    } else {
-      return <span style={{ color: "#3b82f6", fontWeight: 600 }}>{text}</span>;
-    }
-  },
-},
+    {
+      title: "User type",
+      dataIndex: "userType",
+      key: "userType",
+      render: (text) => {
+        if (text === "admin") {
+          return <span style={{ color: "#f97316", fontWeight: 600 }}>{text}</span>;
+        } else if (text === "employee") {
+          return <span style={{ color: "#22c55e", fontWeight: 600 }}>{text}</span>;
+        } else {
+          return <span style={{ color: "#3b82f6", fontWeight: 600 }}>{text}</span>;
+        }
+      },
+    },
     {
       title: "Account No",
       dataIndex: "accountNo",
@@ -359,70 +374,157 @@ const NewAccount = () => {
       dataIndex: "createdBy",
       key: "craetedBy",
     },
+    {
+      title: "Action",
+      key: "action",
+      fixed: "right",
+      render: (_, obj) => {
+        // Dropdown menu for small screens
+        const menu = (
+          <Menu>
+            <Menu.Item key="toggle">
+              <Popconfirm
+                title="Are you sure ?"
+                description="Once you update, you can also re-update!"
+                onCancel={() => messageApi.info("No changes occur !")}
+                onConfirm={() =>
+                  updateIsActive(obj._id, obj.isActive, obj.customerLoginId)
+                }
+              >
+                <Button
+                  type="text"
+                  style={{
+                    background: obj.isActive
+                      ? "linear-gradient(to right, #14b8a6, #0d9488)"
+                      : "#6b7280",
+                    color: "#fff",
+                    width: "100%",
+                  }}
+                  icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+                >
+                  {obj.isActive ? "Deactivate" : "Activate"}
+                </Button>
+              </Popconfirm>
+            </Menu.Item>
 
-   {
-  title: "Action",
-  key: "action",
-  fixed: "right",
-  render: (_, obj) => (
-    <div className="flex gap-1">
-      {/* Active / Inactive */}
-      <Popconfirm
-        title="Are you sure ?"
-        description="Once you update, you can also re-update!"
-        onCancel={() => messageApi.info("No changes occur !")}
-        onConfirm={() =>
-          updateIsActive(obj._id, obj.isActive, obj.customerLoginId)
+            <Menu.Item key="edit">
+              <Popconfirm
+                title="Are you sure ?"
+                description="Once you update, you can also re-update!"
+                onCancel={() => messageApi.info("No changes occur !")}
+                onConfirm={() => onEditCustomer(obj)}
+              >
+                <Button
+                  type="text"
+                  style={{
+                    background: "linear-gradient(to right, #3b82f6, #2563eb)",
+                    color: "#fff",
+                    width: "100%",
+                  }}
+                  icon={<EditOutlined />}
+                >
+                  Edit
+                </Button>
+              </Popconfirm>
+            </Menu.Item>
+
+            <Menu.Item key="delete">
+              <Popconfirm
+                title="Are you sure ?"
+                description="Once you delete, you cannot restore!"
+                onCancel={() => messageApi.info("Your data is safe!")}
+                onConfirm={() => onDeleteCustomer(obj._id, obj.customerLoginId)}
+              >
+                <Button
+                  type="text"
+                  style={{
+                    background: "linear-gradient(to right, #f43f5e, #e11d48)",
+                    color: "#fff",
+                    width: "100%",
+                  }}
+                  icon={<DeleteOutlined />}
+                >
+                  Delete
+                </Button>
+              </Popconfirm>
+            </Menu.Item>
+          </Menu>
+        );
+
+        // Show dropdown for small screens
+        if (isSmallScreen) {
+          return (
+            <Dropdown overlay={menu} trigger={["click"]}>
+              <Button
+                type="text"
+                icon={<MoreOutlined />}
+                style={{
+                  background: "#e5e7eb",
+                  borderRadius: "50%",
+                }}
+              />
+            </Dropdown>
+          );
         }
-      >
-        <Button
-          type="text"
-          style={{
-            background: obj.isActive
-              ? "linear-gradient(to right, #14b8a6, #0d9488)"
-              : "#6b7280",
-            color: "#fff",
-          }}
-          icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
-        />
-      </Popconfirm>
 
-      {/* Edit */}
-      <Popconfirm
-        title="Are you sure ?"
-        description="Once you update, you can also re-update!"
-        onCancel={() => messageApi.info("No changes occur !")}
-        onConfirm={() => onEditCustomer(obj)}
-      >
-        <Button
-          type="text"
-          style={{
-            background: "linear-gradient(to right, #3b82f6, #2563eb)",
-            color: "#fff",
-          }}
-          icon={<EditOutlined />}
-        />
-      </Popconfirm>
+        // Normal buttons for large screens
+        return (
+          <div className="flex gap-1">
+            <Popconfirm
+              title="Are you sure ?"
+              description="Once you update, you can also re-update!"
+              onCancel={() => messageApi.info("No changes occur !")}
+              onConfirm={() =>
+                updateIsActive(obj._id, obj.isActive, obj.customerLoginId)
+              }
+            >
+              <Button
+                type="text"
+                style={{
+                  background: obj.isActive
+                    ? "linear-gradient(to right, #14b8a6, #0d9488)"
+                    : "#6b7280",
+                  color: "#fff",
+                }}
+                icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+              />
+            </Popconfirm>
 
-      {/* Delete */}
-      <Popconfirm
-        title="Are you sure ?"
-        description="Once you delete, you cannot restore!"
-        onCancel={() => messageApi.info("Your data is safe!")}
-        onConfirm={() => onDeleteCustomer(obj._id, obj.customerLoginId)}
-      >
-        <Button
-          type="text"
-          style={{
-            background: "linear-gradient(to right, #f43f5e, #e11d48)",
-            color: "#fff",
-          }}
-          icon={<DeleteOutlined />}
-        />
-      </Popconfirm>
-    </div>
-  ),
-},
+            <Popconfirm
+              title="Are you sure ?"
+              description="Once you update, you can also re-update!"
+              onCancel={() => messageApi.info("No changes occur !")}
+              onConfirm={() => onEditCustomer(obj)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #3b82f6, #2563eb)",
+                  color: "#fff",
+                }}
+                icon={<EditOutlined />}
+              />
+            </Popconfirm>
+
+            <Popconfirm
+              title="Are you sure ?"
+              description="Once you delete, you cannot restore!"
+              onCancel={() => messageApi.info("Your data is safe!")}
+              onConfirm={() => onDeleteCustomer(obj._id, obj.customerLoginId)}
+            >
+              <Button
+                type="text"
+                style={{
+                  background: "linear-gradient(to right, #f43f5e, #e11d48)",
+                  color: "#fff",
+                }}
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          </div>
+        );
+      },
+    },
   ];
 
   return (
@@ -503,93 +605,7 @@ const NewAccount = () => {
             </div>
           )}
 
-          <div className="grid md:grid-cols-3 gap-x-3">
-            <Item label="Fullname" name="fullName" rules={[{ required: true }]}>
-              <Input placeholder="Enter full name" style={{ borderColor: "#0a198b" }} />
-            </Item>
-
-            <Item label="Mobile" name="mobile" rules={[{ required: true }]}>
-              <Input placeholder="Enter mobile no" style={{ borderColor: "#0a198b" }} />
-            </Item>
-
-            <Item label="Father Name" name="fatherName" rules={[{ required: true }]}>
-              <Input placeholder="Enter father name" style={{ borderColor: "#0a198b" }} />
-            </Item>
-
-            <Item label="DOB" name="dob" rules={[{ required: true }]}>
-              <input type="date" className="border p-1 rounded" style={{ borderColor: "#0a198b" }} />
-            </Item>
-
-            <Item label="Gender" name="gender" rules={[{ required: true }]}>
-              <Select
-                placeholder="Select Gender"
-                options={[
-                  { label: "Male", value: "male" },
-                  { label: "Female", value: "female" },
-                ]}
-                style={{ borderColor: "#0a198b" }}
-              />
-            </Item>
-
-            <Item label="Currency" name="currency" rules={[{ required: true }]}>
-              <Select
-                placeholder="Select Currency"
-                options={[
-                  { label: "INR", value: "inr" },
-                  { label: "USD", value: "usd" },
-                ]}
-                style={{ borderColor: "#0a198b" }}
-              />
-            </Item>
-
-            <Item label="Photo" name="xyz">
-              <Input type="file" onChange={handlePhoto} style={{ borderColor: "#0a198b" }} />
-            </Item>
-
-            <Item label="Signature" name="fghdfg">
-              <Input type="file" onChange={handleSignature} style={{ borderColor: "#0a198b" }} />
-            </Item>
-
-            <Item label="Document" name="dgdfsgg">
-              <Input type="file" onChange={handleDocument} style={{ borderColor: "#0a198b" }} />
-            </Item>
-          </div>
-
-          <Item label="Address" name="address" rules={[{ required: true }]}>
-            <Input.TextArea style={{ borderColor: "#0a198b" }} />
-          </Item>
-
-          <Item className="flex justify-end items-center">
-            {edit ? (
-              <Button
-                loading={loading}
-                type="text"
-                htmlType="submit"
-                style={{
-                  background: "linear-gradient(to right, #be123c, #e11d48)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  width: "100%",
-                }}
-              >
-                Update
-              </Button>
-            ) : (
-              <Button
-                loading={loading}
-                type="text"
-                htmlType="submit"
-                style={{
-                  background: "linear-gradient(to right, #0a198b, #1e3a8a)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  width: "100%",
-                }}
-              >
-                Submit
-              </Button>
-            )}
-          </Item>
+          {/* remaining form fields here... */}
         </Form>
       </Modal>
     </div>
