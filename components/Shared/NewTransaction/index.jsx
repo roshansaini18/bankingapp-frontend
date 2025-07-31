@@ -79,23 +79,24 @@ const NewTransaction = () => {
   };
 
   return (
-    <div>
+    <div className="p-2 md:p-4">
       {contextHolder}
       <Card
-        title="New Transaction"
+        title={
+          <span className="text-base md:text-lg font-bold text-yellow-400">
+            New Transaction
+          </span>
+        }
         headStyle={{
           background:
-            "linear-gradient(90deg, #1e1b4b 0%, #312e81 50%, #3b82f6 100%)", // Advanced gradient
-          color: "#fbbf24", // Gold text
-          fontWeight: "bold",
-          fontSize: "18px",
-          letterSpacing: "0.5px",
+            "linear-gradient(90deg, #1e1b4b 0%, #312e81 50%, #3b82f6 100%)",
         }}
         extra={
           <Input
             placeholder="Enter account number"
             value={accountNo}
             onChange={(e) => setAccountNo(e.target.value)}
+            className="w-full sm:w-64"
             style={{
               borderColor: "#6366f1",
               boxShadow: "0 0 6px rgba(99, 102, 241, 0.4)",
@@ -117,37 +118,39 @@ const NewTransaction = () => {
       >
         {accountDetails ? (
           <div>
-            <div className="flex items-center justify-start gap-4 mb-6">
+            {/* Profile & Signature */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-6">
               <Image
                 src={`${import.meta.env.VITE_BASEURL}/${accountDetails?.profile}`}
-                width={100}
+                width={90}
                 className="rounded-full border-2 border-indigo-400 shadow-lg"
               />
               <Image
                 src={`${import.meta.env.VITE_BASEURL}/${accountDetails?.signature}`}
-                width={100}
+                width={90}
                 className="rounded-full border-2 border-emerald-400 shadow-lg"
               />
             </div>
 
-            <div className="mt-5 grid md:grid-cols-3 gap-8">
+            {/* Details + Form Grid */}
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Account Details */}
               <div
                 className="flex flex-col gap-3 p-4 rounded-lg"
                 style={{
-                  background: "rgba(243, 244, 246, 0.6)", // subtle gray bg
+                  background: "rgba(243, 244, 246, 0.6)",
                   border: "1px solid #e5e7eb",
                 }}
               >
-                <div className="flex justify-between items-center text-gray-700">
+                <div className="flex justify-between text-sm md:text-base text-gray-700">
                   <b>Name:</b>
                   <b className="text-gray-900">{accountDetails?.fullName || "N/A"}</b>
                 </div>
-                <div className="flex justify-between items-center text-gray-700">
+                <div className="flex justify-between text-sm md:text-base text-gray-700">
                   <b>Mobile:</b>
                   <b className="text-gray-900">{accountDetails?.mobile || "N/A"}</b>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between text-sm md:text-base">
                   <b>Balance:</b>
                   <b
                     style={{
@@ -165,18 +168,18 @@ const NewTransaction = () => {
                     {accountDetails?.finalBalance}
                   </b>
                 </div>
-                <div className="flex justify-between items-center text-gray-700">
+                <div className="flex justify-between text-sm md:text-base text-gray-700">
                   <b>DOB:</b>
                   <b className="text-gray-900">{accountDetails?.dob || "N/A"}</b>
                 </div>
-                <div className="flex justify-between items-center text-gray-700">
+                <div className="flex justify-between text-sm md:text-base text-gray-700">
                   <b>Currency:</b>
                   <b className="text-gray-900">{accountDetails?.currency || "N/A"}</b>
                 </div>
               </div>
 
-              {/* Empty Column */}
-              <div></div>
+              {/* Spacer column for desktop, hidden on mobile */}
+              <div className="hidden md:block"></div>
 
               {/* Transaction Form */}
               <Form
@@ -185,7 +188,7 @@ const NewTransaction = () => {
                 layout="vertical"
                 className="w-full"
               >
-                <div className="grid md:grid-cols-2 gap-x-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
                   <Form.Item
                     label="Transaction Type"
                     name="transactionType"
@@ -219,11 +222,7 @@ const NewTransaction = () => {
                     />
                   </Form.Item>
 
-                  <Form.Item
-                    label="Reference"
-                    name="refrence"
-                    className="md:col-span-2"
-                  >
+                  <Form.Item label="Reference" name="refrence" className="sm:col-span-2">
                     <Input.TextArea
                       rows={3}
                       style={{
