@@ -17,6 +17,7 @@ import {
   Avatar,
   Dropdown,
   Switch,
+  Drawer,
   theme as antdTheme,
 } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -29,13 +30,16 @@ const { Header, Sider, Content, Footer } = Layout;
 
 const Customerlayout = ({ children }) => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobile, setMobile] = useState(window.innerWidth < 768); // detect mobile
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
   const {
     token: { borderRadiusLG },
   } = antdTheme.useToken();
 
   const { darkMode, setDarkMode } = useTheme();
-  const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
 
@@ -44,6 +48,13 @@ const Customerlayout = ({ children }) => {
     if (userData) {
       setUser(JSON.parse(userData));
     }
+  }, []);
+
+  // Listen for window resize
+  useEffect(() => {
+    const handleResize = () => setMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const logoutFunc = () => {
@@ -63,9 +74,9 @@ const Customerlayout = ({ children }) => {
       icon: <AccountBookOutlined />,
       label: <Link to="/customer/transaction">Transactions</Link>,
     },
-       {
+    {
       key: '/customer/profile',
-      icon: <UserOutlined/>,
+      icon: <UserOutlined />,
       label: <Link to="/customer/profile">Profile</Link>,
     },
     {
@@ -83,7 +94,6 @@ const Customerlayout = ({ children }) => {
     },
   ];
 
-  // Theme colors same as Admin/Employee
   const themeColors = {
     dark: {
       bg: '#000',
@@ -101,7 +111,6 @@ const Customerlayout = ({ children }) => {
 
   const theme = darkMode ? themeColors.dark : themeColors.light;
 
-  // Breadcrumb mapping for customer routes
   const breadcrumbNameMap = {
     '/customer': 'Dashboard',
     '/customer/transaction': 'Transactions',
@@ -141,84 +150,93 @@ const Customerlayout = ({ children }) => {
     />
   );
 
-  return (
-    <Layout
-      hasSider
-      style={{
-        minHeight: '100vh',
-        background: theme.bg,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Sidebar */}
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
+  // Sidebar Content reusable for Drawer + Desktop Sider
+  const SidebarContent = (
+    <div style={{ paddingTop: 20 }}>
+      <div
+        className="logo"
         style={{
-          background: theme.siderBg,
-          paddingTop: 20,
-          position: 'fixed',
-          height: '100vh',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 100,
+          height: 80,
+          margin: '0 16px 24px',
+          background: 'transparent',
+          textAlign: 'center',
+          color: '#fff',
+          fontWeight: 'bold',
+          fontSize: 16,
         }}
       >
-        <div
-          className="logo"
+        <img
+          src={logo}
+          alt="SOB Logo"
           style={{
-            height: 80,
-            margin: '0 16px 24px',
-            background: 'transparent',
-            borderRadius: 12,
-            textAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            color: '#fff',
-            fontWeight: 'bold',
-            fontSize: 16,
-            boxShadow: '0 1px 5px rgba(0,0,0,0.05)',
-          }}
-        >
-          <img
-            src={logo}
-            alt="SOB Logo"
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              marginBottom: 4,
-              border: '2px solid #fff',
-            }}
-          />
-          S.O. Bank
-        </div>
-        <Menu
-          theme={darkMode ? 'dark' : 'light'}
-          mode="inline"
-          selectedKeys={[pathname]}
-          defaultSelectedKeys={[pathname]}
-          items={items}
-          style={{
-            borderRight: 0,
-            background: 'transparent',
-            color: theme.text,
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            marginBottom: 4,
+            border: '2px solid #fff',
           }}
         />
-      </Sider>
+        S.O. Bank
+      </div>
+      <Menu
+        theme={darkMode ? 'dark' : 'light'}
+        mode="inline"
+        selectedKeys={[pathname]}
+        defaultSelectedKeys={[pathname]}
+        items={items}
+        onClick={() => mobile && setDrawerVisible(false)} // close drawer on click
+        style={{
+          borderRight: 0,
+          background: 'transparent',
+          color: theme.text,
+        }}
+      />
+    </div>
+  );
 
-      {/* Main Layout */}
-      <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: 'margin-left 0.2s' }}>
+  return (
+    <Layout style={{ minHeight: '100vh', background: theme.bg }}>
+      {/* Mobile Drawer */}
+      {mobile && (
+        <Drawer
+          placement="left"
+          closable={false}
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+          bodyStyle={{ padding: 0, background: theme.siderBg }}
+        >
+          {SidebarContent}
+        </Drawer>
+      )}
+
+      {/* Desktop Sidebar */}
+      {!mobile && (
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          style={{
+            background: theme.siderBg,
+            paddingTop: 20,
+            position: 'fixed',
+            height: '100vh',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 100,
+          }}
+        >
+          {SidebarContent}
+        </Sider>
+      )}
+
+      <Layout style={{ marginLeft: !mobile ? (collapsed ? 80 : 200) : 0, transition: 'margin-left 0.2s' }}>
+        {/* Header */}
         <Header
           style={{
             position: 'fixed',
             top: 0,
-            left: collapsed ? 80 : 200,
+            left: !mobile ? (collapsed ? 80 : 200) : 0,
             right: 0,
             zIndex: 1000,
             background: theme.siderBg,
@@ -226,16 +244,24 @@ const Customerlayout = ({ children }) => {
             alignItems: 'center',
             padding: '0 24px',
             justifyContent: 'space-between',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.08)',
             transition: 'left 0.2s',
-            color: theme.text,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Button
               type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
+              icon={
+                mobile
+                  ? drawerVisible
+                    ? <MenuFoldOutlined />
+                    : <MenuUnfoldOutlined />
+                  : collapsed
+                    ? <MenuUnfoldOutlined />
+                    : <MenuFoldOutlined />
+              }
+              onClick={() =>
+                mobile ? setDrawerVisible(!drawerVisible) : setCollapsed(!collapsed)
+              }
               style={{ fontSize: '20px', color: '#fff', marginRight: 16 }}
             />
             <h1 style={{ color: '#facc15', margin: 0, fontSize: 20 }}>Customer Panel</h1>
@@ -276,7 +302,6 @@ const Customerlayout = ({ children }) => {
               background: theme.cardBg,
               borderRadius: borderRadiusLG,
               color: darkMode ? '#fff' : '#000',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
             }}
           >
             {children}
