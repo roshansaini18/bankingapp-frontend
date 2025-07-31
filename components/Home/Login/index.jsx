@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 const Login = () => {
   const cookies = new Cookies();
   const expires = new Date();
-  expires.setDate(expires.getDate() + 3); // token valid for 3 days
+  expires.setDate(expires.getDate() + 3);
 
   const navigate = useNavigate();
   const [messageApi, context] = message.useMessage();
@@ -21,19 +21,12 @@ const Login = () => {
 
       if (data?.isLoged) {
         const { token, userType, user } = data;
-
-        // Save token in cookie
         cookies.set("authToken", token, { path: "/", expires });
 
-        // Save user info safely in localStorage
         if (user) {
           localStorage.setItem("userInfo", JSON.stringify(user));
-          console.log("User info saved to localStorage:", user);
-        } else {
-          console.warn("No user object received in login response");
         }
 
-        // Redirect based on userType
         if (userType === "admin") {
           navigate("/admin");
         } else if (userType === "employee") {
@@ -44,7 +37,7 @@ const Login = () => {
 
         messageApi.success("Login success");
       } else {
-        message.warning("Wrong credentials!");
+        return message.warning("Wrong credentials!");
       }
     } catch (err) {
       messageApi.error(err?.response?.data?.message || "Login failed");
@@ -52,7 +45,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh] py-6 bg-gray-100">
+    <div className="flex items-center justify-center min-h-[80vh] py-4 sm:py-6 bg-gray-100">
       {context}
 
       {/* Blue Gradient Container */}
@@ -68,24 +61,26 @@ const Login = () => {
         </div>
 
         {/* Right side login form */}
-        <div className="flex w-full md:w-1/2 items-center justify-center p-6 bg-white">
-          <Card className="w-[90%] md:max-w-sm shadow-none border-0">
-            <h2 className="text-2xl font-semibold text-center text-blue-700 mb-4">
+        <div className="flex w-full md:w-1/2 items-center justify-center p-4 sm:p-6 bg-white">
+          <Card className="w-full max-w-sm sm:max-w-md shadow-none border-0">
+            <h2 className="text-xl sm:text-2xl font-semibold text-center text-blue-700 mb-3 sm:mb-4">
               Bank Login
             </h2>
-            <Form name="login" onFinish={onFinish} layout="vertical">
-              <Item name="email" label="Username" rules={[{ required: true }]}>
+            <Form name="login" onFinish={onFinish} layout="vertical" className="space-y-2">
+              <Item name="email" label={<span className="text-sm sm:text-base">Username</span>} rules={[{ required: true }]}>
                 <Input
                   prefix={<UserOutlined />}
                   placeholder="Enter your username"
                   size="large"
+                  className="h-10 sm:h-12 text-sm sm:text-base"
                 />
               </Item>
-              <Item name="password" label="Password" rules={[{ required: true }]}>
+              <Item name="password" label={<span className="text-sm sm:text-base">Password</span>} rules={[{ required: true }]}>
                 <Input.Password
                   prefix={<LoginOutlined />}
                   placeholder="Enter your password"
                   size="large"
+                  className="h-10 sm:h-12 text-sm sm:text-base"
                 />
               </Item>
               <Item>
@@ -94,7 +89,7 @@ const Login = () => {
                   htmlType="submit"
                   block
                   size="large"
-                  className="!bg-blue-500 !text-white !font-bold hover:!bg-blue-600"
+                  className="!bg-blue-500 !text-white !font-bold hover:!bg-blue-600 text-sm sm:text-base"
                 >
                   Login
                 </Button>
@@ -104,7 +99,7 @@ const Login = () => {
               <div className="text-center mt-2">
                 <Button
                   type="link"
-                  className="!text-blue-500 hover:!text-blue-700"
+                  className="!text-blue-500 hover:!text-blue-700 text-xs sm:text-sm"
                   onClick={() => navigate("/forgot-password")}
                 >
                   Forgot Password?
