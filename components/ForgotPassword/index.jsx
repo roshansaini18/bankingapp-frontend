@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Input, Button, Card, message } from "antd";
 import { http } from "../../modules/modules";
 import { useNavigate } from "react-router-dom";
-import logo from "../../assets/main.logo.png";
+import logo from "../../src/assets/main.logo.png";
 
 
 const canaraBlue = "#003f6b";
