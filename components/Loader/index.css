@@ -1,0 +1,26 @@
+.loader-container{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: hsl(0, 0%, 100%);
+}
+
+.spinner{
+    width: 70px;
+    height: 70px;
+    border: 7px solid rgba(0,0,0,0,1);
+    border-top: 8px solid #076fd8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes span{
+    0%{
+        transform: rotate(0deg);
+    }
+    100%{
+        transform:rotate(360deg);
+    }
+}
