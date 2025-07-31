@@ -6,7 +6,7 @@ const { Item } = Form;
 import { useEffect, useState } from "react";
 
 const Branch = () => {
-  // State collection
+  // State
   const [branchFORM] = Form.useForm();
   const [loading, setLoadig] = useState(false);
   const [messageApi, context] = message.useMessage();
@@ -14,7 +14,7 @@ const Branch = () => {
   const [no, setNo] = useState(0);
   const [edit, setEdit] = useState(null);
 
-  // Get branch data
+  // Fetch branch data
   useEffect(() => {
     const fetcher = async () => {
       try {
@@ -60,14 +60,14 @@ const Branch = () => {
     try {
       const httpReq = http();
       await httpReq.delete(`/api/branch/${id}`);
-      messageApi.success("Branch deleted successfully !");
+      messageApi.success("Branch deleted successfully!");
       setNo(no + 1);
     } catch (err) {
-      messageApi.error("Unable to delete branch !");
+      messageApi.error("Unable to delete branch!");
     }
   };
 
-  // Update branch
+  // Edit branch
   const onEditBranch = async (obj) => {
     setEdit(obj);
     branchFORM.setFieldsValue(obj);
@@ -75,16 +75,16 @@ const Branch = () => {
 
   const onUpdate = async (values) => {
     try {
-      setLoadig(false);
+      setLoadig(true);
       let finalObj = trimData(values);
       const httpReq = http();
       await httpReq.put(`/api/branch/${edit._id}`, finalObj);
-      messageApi.success("Branch updated successfully !");
+      messageApi.success("Branch updated successfully!");
       setNo(no + 1);
       setEdit(null);
       branchFORM.resetFields();
     } catch (err) {
-      messageApi.error("Unable to update branch !");
+      messageApi.error("Unable to update branch!");
     } finally {
       setLoadig(false);
     }
@@ -96,12 +96,13 @@ const Branch = () => {
       title: "Branch Name",
       dataIndex: "branchName",
       key: "branchName",
-      render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>,
+      render: (text) => <span className="font-medium">{text}</span>,
     },
     {
       title: "Branch Address",
       dataIndex: "branchAddress",
       key: "branchAddress",
+      ellipsis: true, // truncate long addresses on small screens
     },
     {
       title: "Action",
@@ -111,35 +112,37 @@ const Branch = () => {
         <div className="flex gap-1">
           {/* Edit Button */}
           <Popconfirm
-            title="Are you sure ?"
-            description="Once you update, you can also re-update !"
-            onCancel={() => messageApi.info("No changes occur !")}
+            title="Are you sure?"
+            description="Once you update, you can also re-update!"
+            onCancel={() => messageApi.info("No changes occur!")}
             onConfirm={() => onEditBranch(obj)}
           >
             <Button
               type="text"
               style={{
-                background: "linear-gradient(to right, #3b82f6, #2563eb)", // blue gradient
+                background: "linear-gradient(to right, #3b82f6, #2563eb)",
                 color: "#fff",
               }}
               icon={<EditOutlined />}
+              size="small"
             />
           </Popconfirm>
 
           {/* Delete Button */}
           <Popconfirm
-            title="Are you sure ?"
-            description="Once you delete, you cannot restore it !"
-            onCancel={() => messageApi.info("Your data is safe !")}
+            title="Are you sure?"
+            description="Once you delete, you cannot restore it!"
+            onCancel={() => messageApi.info("Your data is safe!")}
             onConfirm={() => onDeleteBranch(obj._id)}
           >
             <Button
               type="text"
               style={{
-                background: "linear-gradient(to right, #f43f5e, #e11d48)", // red gradient
+                background: "linear-gradient(to right, #f43f5e, #e11d48)",
                 color: "#fff",
               }}
               icon={<DeleteOutlined />}
+              size="small"
             />
           </Popconfirm>
         </div>
@@ -150,13 +153,13 @@ const Branch = () => {
   return (
     <Adminlayout>
       {context}
-      <h1 className="grid md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Add New Branch Card */}
         <Card
           title="Add new branch"
           headStyle={{
-            background: "linear-gradient(to right, #0a198b, #1e3a8a)", // Blue gradient
-            color: "#facc15", // Yellow text
+            background: "linear-gradient(to right, #0a198b, #1e3a8a)",
+            color: "#facc15",
             fontWeight: "bold",
           }}
         >
@@ -174,7 +177,7 @@ const Branch = () => {
             </Item>
 
             <Item label="Branch address" name="branchAddress">
-              <Input.TextArea />
+              <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
             </Item>
             <Item>
               {edit ? (
@@ -183,7 +186,7 @@ const Branch = () => {
                   type="text"
                   htmlType="submit"
                   style={{
-                    background: "linear-gradient(to right, #f43f5e, #e11d48)", // red gradient
+                    background: "linear-gradient(to right, #f43f5e, #e11d48)",
                     color: "#fff",
                     fontWeight: "bold",
                     width: "100%",
@@ -197,7 +200,7 @@ const Branch = () => {
                   type="text"
                   htmlType="submit"
                   style={{
-                    background: "linear-gradient(to right, #3b82f6, #2563eb)", // blue gradient
+                    background: "linear-gradient(to right, #3b82f6, #2563eb)",
                     color: "#fff",
                     fontWeight: "bold",
                     width: "100%",
@@ -215,23 +218,28 @@ const Branch = () => {
           className="md:col-span-2"
           title="Branch list"
           headStyle={{
-            background: "linear-gradient(to right, #0a198b, #1e3a8a)", // Blue gradient
+            background: "linear-gradient(to right, #0a198b, #1e3a8a)",
             color: "#facc15",
             fontWeight: "bold",
           }}
-          style={{ overflowX: "auto" }}
+          bodyStyle={{
+            overflowX: "auto",
+            padding: "0.5rem",
+          }}
         >
           <Table
             columns={columns}
             dataSource={allBranch}
-            scroll={{ x: "max-content" }}
+            scroll={{ x: 600 }} // enable horizontal scroll for small screens
             pagination={false}
+            size="small"
+            rowKey="_id"
             style={{
               border: "1px solid #e5e7eb",
             }}
           />
         </Card>
-      </h1>
+      </div>
     </Adminlayout>
   );
 };
