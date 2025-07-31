@@ -18,9 +18,9 @@ import {
   Button,
   Breadcrumb,
   Avatar,
-  Tooltip,
   Switch,
   Dropdown,
+  Drawer,
   theme as antdTheme,
 } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -42,9 +42,8 @@ const Adminlayout = ({ children }) => {
 
   const navigate = useNavigate();
 
-  // Get user info from sessionStorage
+  // User info from sessionStorage
   const [user, setUser] = useState(null);
-
   useEffect(() => {
     const userData = sessionStorage.getItem('userInfo');
     if (userData) {
@@ -52,13 +51,14 @@ const Adminlayout = ({ children }) => {
     }
   }, []);
 
-  // logout function
+  // Logout function
   const logoutFunc = () => {
     sessionStorage.removeItem('userInfo');
     cookies.remove('authToken');
     navigate('/');
   };
 
+  // Menu items
   const items = [
     {
       key: '/admin',
@@ -110,7 +110,7 @@ const Adminlayout = ({ children }) => {
     },
   ];
 
-  // Theme Colors
+  // Theme colors
   const themeColors = {
     dark: {
       bg: '#000',
@@ -139,7 +139,7 @@ const Adminlayout = ({ children }) => {
     '/admin/new-transaction': 'New Transaction',
   };
 
-  // Generate breadcrumb dynamically
+  // Generate breadcrumbs dynamically
   const pathSnippets = pathname.split('/').filter((i) => i);
   const breadcrumbItems = [
     { title: 'Home', path: '/' },
@@ -152,7 +152,7 @@ const Adminlayout = ({ children }) => {
     }),
   ];
 
-  // Dropdown menu for profile actions
+  // Dropdown for profile
   const profileMenu = (
     <Menu
       items={[
@@ -174,6 +174,21 @@ const Adminlayout = ({ children }) => {
     />
   );
 
+  // Responsive handling
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  const toggleDrawer = () => {
+    setDrawerVisible(!drawerVisible);
+  };
+
   return (
     <Layout
       hasSider
@@ -183,75 +198,130 @@ const Adminlayout = ({ children }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Sidebar */}
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        style={{
-          background: theme.siderBg,
-          paddingTop: 20,
-          position: 'fixed',
-          height: '100vh',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 100,
-        }}
-      >
-        <div
-          className="logo"
+      {/* Sidebar for Desktop */}
+      {!isMobile && (
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
           style={{
-            height: 80,
-            margin: '0 16px 24px',
-            background: 'transparent',
-            borderRadius: 12,
-            textAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            color: '#fff',
-            fontWeight: 'bold',
-            fontSize: 16,
-            boxShadow: '0 1px 5px rgba(0,0,0,0.05)',
+            background: theme.siderBg,
+            paddingTop: 20,
+            position: 'fixed',
+            height: '100vh',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 100,
           }}
         >
-          <img
-            src={logo}
-            alt="SOB Logo"
+          <div
+            className="logo"
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              marginBottom: 4,
-              border: '2px solid #fff',
+              height: 80,
+              margin: '0 16px 24px',
+              background: 'transparent',
+              borderRadius: 12,
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              color: '#fff',
+              fontWeight: 'bold',
+              fontSize: 16,
+              boxShadow: '0 1px 5px rgba(0,0,0,0.05)',
+            }}
+          >
+            <img
+              src={logo}
+              alt="SOB Logo"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                marginBottom: 4,
+                border: '2px solid #fff',
+              }}
+            />
+            S.O. Bank
+          </div>
+          <Menu
+            theme={darkMode ? 'dark' : 'light'}
+            mode="inline"
+            selectedKeys={[pathname]}
+            defaultSelectedKeys={[pathname]}
+            items={items}
+            style={{
+              borderRight: 0,
+              background: 'transparent',
+              color: theme.text,
             }}
           />
-          S.O. Bank
-        </div>
-        <Menu
-          theme={darkMode ? 'dark' : 'light'}
-          mode="inline"
-          selectedKeys={[pathname]}
-          defaultSelectedKeys={[pathname]}
-          items={items}
-          style={{
-            borderRight: 0,
-            background: 'transparent',
-            color: theme.text,
-          }}
-        />
-      </Sider>
+        </Sider>
+      )}
 
-      <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: 'margin-left 0.2s' }}>
+      {/* Drawer for Mobile */}
+      {isMobile && (
+        <Drawer
+          placement="left"
+          closable={false}
+          onClose={toggleDrawer}
+          open={drawerVisible}
+          bodyStyle={{ padding: 0, background: theme.siderBg }}
+        >
+          <div
+            style={{
+              height: 80,
+              margin: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+            }}
+          >
+            <img
+              src={logo}
+              alt="SOB Logo"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                marginBottom: 4,
+                border: '2px solid #fff',
+              }}
+            />
+            S.O. Bank
+          </div>
+          <Menu
+            theme={darkMode ? 'dark' : 'light'}
+            mode="inline"
+            selectedKeys={[pathname]}
+            items={items}
+            style={{
+              borderRight: 0,
+              background: 'transparent',
+              color: theme.text,
+            }}
+          />
+        </Drawer>
+      )}
+
+      <Layout
+        style={{
+          marginLeft: isMobile ? 0 : collapsed ? 80 : 200,
+          transition: 'margin-left 0.2s',
+        }}
+      >
         {/* Header */}
         <Header
           style={{
             position: 'fixed',
             top: 0,
-            left: collapsed ? 80 : 200,
+            left: isMobile ? 0 : collapsed ? 80 : 200,
             right: 0,
             zIndex: 1000,
             background: theme.siderBg,
@@ -267,8 +337,8 @@ const Adminlayout = ({ children }) => {
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Button
               type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
+              icon={isMobile ? <MenuUnfoldOutlined /> : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={isMobile ? toggleDrawer : () => setCollapsed(!collapsed)}
               style={{ fontSize: '20px', color: '#fff', marginRight: 16 }}
             />
             <h1 style={{ color: '#facc15', margin: 0, fontSize: 20 }}>Admin Panel</h1>
@@ -280,7 +350,6 @@ const Adminlayout = ({ children }) => {
               checkedChildren={<BulbFilled />}
               unCheckedChildren={<BulbOutlined />}
             />
-            {/* User Profile Dropdown */}
             <Dropdown overlay={profileMenu} placement="bottomRight">
               <Avatar
                 style={{
