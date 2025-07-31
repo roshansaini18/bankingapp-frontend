@@ -1,5 +1,5 @@
 import Homelayout from "../Layout/Homelayout";
-import Login from "./login";
+import Login from "./Login";
 
 const Homepage=()=>{
     return(
