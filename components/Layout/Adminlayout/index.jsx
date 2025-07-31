@@ -60,9 +60,13 @@ const Adminlayout = ({ children }) => {
 
   const [user, setUser] = useState(getSafeUser());
 
-  useEffect(() => {
-    setUser(getSafeUser());
-  }, []);
+useEffect(() => {
+  const storedUser = localStorage.getItem("userInfo");
+  if (storedUser) {
+    setUser(JSON.parse(storedUser));
+  }
+}, []);
+
 
   // Handle window resize to switch mobile/desktop
   useEffect(() => {
