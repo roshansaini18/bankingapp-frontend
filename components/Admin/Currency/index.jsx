@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { useTheme } from "../../Layout/Theme/ThemeContext";
 
 const Currency = () => {
-  // state collection
+  // state
   const [currencyFORM] = Form.useForm();
   const [loading, setLoadig] = useState(false);
   const [messageApi, context] = message.useMessage();
@@ -25,7 +25,7 @@ const Currency = () => {
   const [no, setNo] = useState(0);
   const [edit, setEdit] = useState(null);
 
-  // ✅ Theme
+  // Theme
   const { darkMode } = useTheme();
   const theme = {
     background: darkMode ? "#141414" : "#fff",
@@ -34,7 +34,7 @@ const Currency = () => {
     border: darkMode ? "1px solid #303030" : "1px solid #f0f0f0",
   };
 
-  // get currency data
+  // fetch data
   useEffect(() => {
     const fetcher = async () => {
       try {
@@ -48,7 +48,7 @@ const Currency = () => {
     fetcher();
   }, [no]);
 
-  // create new currency
+  // create currency
   const onFinish = async (values) => {
     try {
       setLoadig(true);
@@ -87,51 +87,60 @@ const Currency = () => {
       let finalObj = trimData(values);
       const httpReq = http();
       await httpReq.put(`/api/currency/${edit._id}`, finalObj);
-      messageApi.success("Currency updated successfully !");
+      messageApi.success("Currency updated successfully!");
       setNo(no + 1);
       setEdit(null);
       currencyFORM.resetFields();
     } catch (err) {
-      messageApi.error("Unable to update currency !");
+      messageApi.error("Unable to update currency!");
     } finally {
       setLoadig(false);
     }
   };
 
-  // delete currency
+  // delete
   const onDeleteCurrency = async (id) => {
     try {
       const httpReq = http();
       await httpReq.delete(`/api/currency/${id}`);
-      messageApi.success("Currency deleted successfully !");
+      messageApi.success("Currency deleted successfully!");
       setNo(no + 1);
     } catch (err) {
-      messageApi.error("Unable to delete currency !");
+      messageApi.error("Unable to delete currency!");
     }
   };
 
-  // Common style for yellow text + blue gradient
+  // Header style
   const headerStyle = {
     background: "linear-gradient(to right, #0a198b, #1e3a8a)",
-    color: "#facc15", // yellow text
+    color: "#facc15",
     fontWeight: "bold",
   };
 
-  // columns for table
+  // columns
   const columns = [
     {
       title: "Currency Name",
       dataIndex: "currencyName",
       key: "currencyName",
       render: (text) => (
-        <span style={{ color: theme.text, fontWeight: 500 }}>{text}</span>
+        <span
+          className="text-xs sm:text-sm md:text-base"
+          style={{ color: theme.text, fontWeight: 500 }}
+        >
+          {text}
+        </span>
       ),
     },
     {
       title: "Currency Description",
       dataIndex: "currencyDesc",
       key: "currencyDesc",
-      render: (text) => <span style={{ color: theme.text }}>{text}</span>,
+      render: (text) => (
+        <span className="text-xs sm:text-sm md:text-base" style={{ color: theme.text }}>
+          {text}
+        </span>
+      ),
     },
     {
       title: "Action",
@@ -139,39 +148,35 @@ const Currency = () => {
       fixed: "right",
       render: (_, obj) => (
         <>
-          {/* Desktop buttons */}
+          {/* Desktop Buttons */}
           <div className="hidden md:flex gap-1">
             <Popconfirm
-              title="Are you sure ?"
-              description="Once you update, you can also re-update!"
-              onCancel={() => messageApi.info("No changes occur!")}
+              title="Are you sure?"
               onConfirm={() => onEditCurrency(obj)}
             >
               <Button
                 type="text"
+                size="small"
                 style={{
                   background: "linear-gradient(to right, #3b82f6, #2563eb)",
                   color: "#fff",
                 }}
                 icon={<EditOutlined />}
-                size="small"
               />
             </Popconfirm>
 
             <Popconfirm
-              title="Are you sure ?"
-              description="Once you delete, you cannot restore it!"
-              onCancel={() => messageApi.info("Your data is safe!")}
+              title="Are you sure?"
               onConfirm={() => onDeleteCurrency(obj._id)}
             >
               <Button
                 type="text"
+                size="small"
                 style={{
                   background: "linear-gradient(to right, #f43f5e, #e11d48)",
                   color: "#fff",
                 }}
                 icon={<DeleteOutlined />}
-                size="small"
               />
             </Popconfirm>
           </div>
@@ -195,10 +200,7 @@ const Currency = () => {
               }
               trigger={["click"]}
             >
-              <Button
-                type="text"
-                icon={<EllipsisOutlined style={{ fontSize: 20 }} />}
-              />
+              <Button type="text" icon={<EllipsisOutlined style={{ fontSize: 20 }} />} />
             </Dropdown>
           </div>
         </>
@@ -209,10 +211,12 @@ const Currency = () => {
   return (
     <Adminlayout>
       {context}
-      <h1 className="grid md:grid-cols-3 gap-3">
+      <h1 className="grid md:grid-cols-3 gap-1 sm:gap-3 px-0">
+        {/* Add Currency */}
         <Card
           title="Add new currency"
           headStyle={headerStyle}
+          className="text-xs sm:text-sm md:text-base p-2 sm:p-4"
           style={{
             background: theme.cardBg,
             border: theme.border,
@@ -231,12 +235,14 @@ const Currency = () => {
             >
               <Input
                 style={{ background: theme.cardBg, color: theme.text }}
+                className="text-xs sm:text-sm md:text-base"
               />
             </Item>
 
             <Item label="Currency description" name="currencyDesc">
               <Input.TextArea
                 style={{ background: theme.cardBg, color: theme.text }}
+                className="text-xs sm:text-sm md:text-base"
               />
             </Item>
             <Item>
@@ -245,12 +251,7 @@ const Currency = () => {
                   loading={loading}
                   type="text"
                   htmlType="submit"
-                  style={{
-                    background: "linear-gradient(to right, #f43f5e, #e11d48)",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    width: "100%",
-                  }}
+                  className="!bg-rose-500 !text-white !font-bold !w-full text-xs sm:text-sm md:text-base"
                 >
                   Update
                 </Button>
@@ -259,12 +260,7 @@ const Currency = () => {
                   loading={loading}
                   type="text"
                   htmlType="submit"
-                  style={{
-                    background: "linear-gradient(to right, #3b82f6, #2563eb)",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    width: "100%",
-                  }}
+                  className="!bg-blue-500 !text-white !font-bold !w-full text-xs sm:text-sm md:text-base"
                 >
                   Submit
                 </Button>
@@ -273,8 +269,9 @@ const Currency = () => {
           </Form>
         </Card>
 
+        {/* Currency List */}
         <Card
-          className="md:col-span-2"
+          className="md:col-span-2 text-xs sm:text-sm md:text-base p-2 sm:p-4"
           title="Currency list"
           headStyle={headerStyle}
           style={{
