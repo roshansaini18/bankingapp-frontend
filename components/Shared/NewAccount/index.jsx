@@ -2,7 +2,6 @@ import {
   Button,
   Card,
   message,
-  DatePicker,
   Form,
   Input,
   Modal,
@@ -30,8 +29,11 @@ import useSWR, { mutate } from "swr";
 
 const { Item } = Form;
 
+// Define the ImageKit base URL once
+const baseUrl = "https://ik.imagekit.io/gr14ysun7";
+
 const NewAccount = () => {
-  //getInfo  from sessionStorage
+  //getInfo from sessionStorage
   const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
 
   const [accountForm] = Form.useForm();
@@ -40,9 +42,10 @@ const NewAccount = () => {
   //states collections
   const [accountModal, setAccountModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [photo, setPhoto] = useState(null);
-  const [signature, setSignature] = useState(null);
-  const [document, setDocument] = useState(null);
+  // These states will now store the raw File object until submission
+  const [photoFile, setPhotoFile] = useState(null);
+  const [signatureFile, setSignatureFile] = useState(null);
+  const [documentFile, setDocumentFile] = useState(null);
   const [no, setNo] = useState(0);
   const [allCustomer, setAllCustome] = useState(null);
   const [finalCustomer, setFinalCustome] = useState(null);
@@ -82,14 +85,32 @@ const NewAccount = () => {
   const onFinish = async (values) => {
     try {
       setLoading(true);
+      messageApi.info("Uploading files, please wait...");
+
+      // Upload files if they exist
+      let profilePath = photoFile
+        ? (await uploadFile(photoFile, "customerPhoto")).filePath
+        : "/customerPhoto/dummy.png";
+
+      let signaturePath = signatureFile
+        ? (await uploadFile(signatureFile, "customerSignature")).filePath
+        : "/customerPhoto/dummy.png";
+
+      let documentPath = documentFile
+        ? (await uploadFile(documentFile, "customerDocument")).filePath
+        : "/customerPhoto/dummy.png";
+
+      messageApi.success("Files uploaded. Creating account...");
+
       let finalObj = trimData(values);
-      finalObj.profile = photo ? photo : "bankImages/dummy.jpg";
-      finalObj.signature = signature ? signature : "bankImages/dummy.jpg";
-      finalObj.document = document ? document : "bankImages/dummy.jpg";
+      finalObj.profile = profilePath;
+      finalObj.signature = signaturePath;
+      finalObj.document = documentPath;
       finalObj.key = finalObj.email;
       finalObj.userType = "customer";
       finalObj.branch = userInfo?.branch;
       finalObj.createdBy = userInfo?.email;
+
       const httpReq = http();
       const { data } = await httpReq.post(`/api/users`, finalObj);
       finalObj.customerLoginId = data?.data._id;
@@ -100,13 +121,10 @@ const NewAccount = () => {
       await httpReq.post(`/api/customers`, finalObj);
       await httpReq.post(`/api/send-email`, obj);
       await httpReq.put(`/api/branding/${brandingId}`, { bankAccountNo });
-      accountForm.resetFields();
+      
+      onCloseModal(); // Use the close modal function to reset everything
       mutate("/api/branding");
-      setPhoto(null);
-      setDocument(null);
-      setSignature(null);
       setNo(no + 1);
-      setAccountModal(false);
       messageApi.success("Account created !");
     } catch (err) {
       if (err?.response?.data?.error?.code === 11000) {
@@ -117,47 +135,24 @@ const NewAccount = () => {
           },
         ]);
       } else {
-        messageApi.error("Try again later");
+        messageApi.error("An error occurred. Please try again later.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  //handle photo
-  const handlePhoto = async (e) => {
-    let file = e.target.files[0];
-    const folderName = "customerPhoto";
-    try {
-      const result = await uploadFile(file, folderName);
-      setPhoto(result.filePath);
-    } catch (err) {
-      messageApi.error("Unable to upload");
-    }
+  // Store the selected file object in state
+  const handlePhoto = (e) => {
+    setPhotoFile(e.target.files[0]);
   };
 
-  //handle signature
-  const handleSignature = async (e) => {
-    let file = e.target.files[0];
-    const folderName = "customerSignature";
-    try {
-      const result = await uploadFile(file, folderName);
-      setSignature(result.filePath);
-    } catch (err) {
-      messageApi.error("Unable to upload");
-    }
+  const handleSignature = (e) => {
+    setSignatureFile(e.target.files[0]);
   };
 
-  //handle document
-  const handleDocument = async (e) => {
-    let file = e.target.files[0];
-    const folderName = "customerDocument";
-    try {
-      const result = await uploadFile(file, folderName);
-      setDocument(result.filePath);
-    } catch (err) {
-      messageApi.error("Unable to upload");
-    }
+  const handleDocument = (e) => {
+    setDocumentFile(e.target.files[0]);
   };
 
   // update isActive
@@ -230,25 +225,25 @@ const NewAccount = () => {
       delete finalObj.password;
       delete finalObj.email;
       delete finalObj.accountNo;
-      if (photo) {
-        finalObj.profile = photo;
+
+      if (photoFile) {
+        messageApi.info("Uploading new photo...");
+        finalObj.profile = (await uploadFile(photoFile, "customerPhoto")).filePath;
       }
-      if (signature) {
-        finalObj.signature = signature;
+      if (signatureFile) {
+        messageApi.info("Uploading new signature...");
+        finalObj.signature = (await uploadFile(signatureFile, "customerSignature")).filePath;
       }
-      if (document) {
-        finalObj.document = document;
+      if (documentFile) {
+        messageApi.info("Uploading new document...");
+        finalObj.document = (await uploadFile(documentFile, "customerDocument")).filePath;
       }
+
       const httpReq = http();
       await httpReq.put(`/api/customers/${edit._id}`, finalObj);
       messageApi.success("Employee updated successfully !");
       setNo(no + 1);
-      setEdit(null);
-      setPhoto(null);
-      setSignature(null);
-      setDocument(null);
-      setAccountModal(false);
-      accountForm.resetFields();
+      onCloseModal(); // Use the close modal function to reset everything
     } catch (err) {
       messageApi.error("Unable to update customer !");
     } finally {
@@ -259,45 +254,56 @@ const NewAccount = () => {
   const onCloseModal = () => {
     setAccountModal(false);
     setEdit(null);
+    setPhotoFile(null);
+    setSignatureFile(null);
+    setDocumentFile(null);
     accountForm.resetFields();
   };
 
-  // columns for table
   const columns = [
     {
       title: "Photo",
       key: "photo",
-      render: (src, obj) => (
+      render: (_, obj) => (
         <Image
-          src={`${import.meta.env.VITE_BASEURL}/${obj?.profile}`}
+          // Construct the full URL using the baseUrl and the stored filePath
+          src={`${baseUrl}${obj?.profile}?tr=w-40,h-40`}
           className="rounded-full"
           width={40}
           height={40}
+          preview={{
+            src: `${baseUrl}${obj?.profile}`, // Preview shows the full-resolution image
+          }}
         />
       ),
     },
     {
       title: "Signature",
       key: "signature",
-      render: (src, obj) => (
+      render: (_, obj) => (
         <Image
-          src={`${import.meta.env.VITE_BASEURL}/${obj?.signature}`}
-          className="rounded-full"
-          width={40}
+          // Construct the full URL and append transformations
+          src={`${baseUrl}${obj?.signature}?tr=w-80,h-40`}
+          width={80}
           height={40}
+          preview={{
+            src: `${baseUrl}${obj?.signature}`,
+          }}
         />
       ),
     },
     {
       title: "Document",
       key: "document",
-      render: (src, obj) => (
-        <Button
-          type="text"
-          shape="circle"
-          className="!bg-blue-100 !text-blue-500"
-          icon={<DownloadOutlined />}
-        ></Button>
+      render: (_, obj) => (
+        <a href={`${baseUrl}${obj?.document}`} target="_blank" rel="noopener noreferrer">
+          <Button
+            type="text"
+            shape="circle"
+            className="!bg-blue-100 !text-blue-500"
+            icon={<DownloadOutlined />}
+          ></Button>
+        </a>
       ),
     },
     {
@@ -305,20 +311,20 @@ const NewAccount = () => {
       dataIndex: "branch",
       key: "branch",
     },
- {
-  title: "User type",
-  dataIndex: "userType",
-  key: "userType",
-  render: (text) => {
-    if (text === "admin") {
-      return <span style={{ color: "#f97316", fontWeight: 600 }}>{text}</span>;
-    } else if (text === "employee") {
-      return <span style={{ color: "#22c55e", fontWeight: 600 }}>{text}</span>;
-    } else {
-      return <span style={{ color: "#3b82f6", fontWeight: 600 }}>{text}</span>;
-    }
-  },
-},
+    {
+      title: "User type",
+      dataIndex: "userType",
+      key: "userType",
+      render: (text) => {
+        if (text === "admin") {
+          return <span style={{ color: "#f97316", fontWeight: 600 }}>{text}</span>;
+        } else if (text === "employee") {
+          return <span style={{ color: "#22c55e", fontWeight: 600 }}>{text}</span>;
+        } else {
+          return <span style={{ color: "#3b82f6", fontWeight: 600 }}>{text}</span>;
+        }
+      },
+    },
     {
       title: "Account No",
       dataIndex: "accountNo",
@@ -360,69 +366,69 @@ const NewAccount = () => {
       key: "craetedBy",
     },
 
-   {
-  title: "Action",
-  key: "action",
-  fixed: "right",
-  render: (_, obj) => (
-    <div className="flex gap-1">
-      {/* Active / Inactive */}
-      <Popconfirm
-        title="Are you sure ?"
-        description="Once you update, you can also re-update!"
-        onCancel={() => messageApi.info("No changes occur !")}
-        onConfirm={() =>
-          updateIsActive(obj._id, obj.isActive, obj.customerLoginId)
-        }
-      >
-        <Button
-          type="text"
-          style={{
-            background: obj.isActive
-              ? "linear-gradient(to right, #14b8a6, #0d9488)"
-              : "#6b7280",
-            color: "#fff",
-          }}
-          icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
-        />
-      </Popconfirm>
+    {
+      title: "Action",
+      key: "action",
+      fixed: "right",
+      render: (_, obj) => (
+        <div className="flex gap-1">
+          {/* Active / Inactive */}
+          <Popconfirm
+            title="Are you sure ?"
+            description="Once you update, you can also re-update!"
+            onCancel={() => messageApi.info("No changes occur !")}
+            onConfirm={() =>
+              updateIsActive(obj._id, obj.isActive, obj.customerLoginId)
+            }
+          >
+            <Button
+              type="text"
+              style={{
+                background: obj.isActive
+                  ? "linear-gradient(to right, #14b8a6, #0d9488)"
+                  : "#6b7280",
+                color: "#fff",
+              }}
+              icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+            />
+          </Popconfirm>
 
-      {/* Edit */}
-      <Popconfirm
-        title="Are you sure ?"
-        description="Once you update, you can also re-update!"
-        onCancel={() => messageApi.info("No changes occur !")}
-        onConfirm={() => onEditCustomer(obj)}
-      >
-        <Button
-          type="text"
-          style={{
-            background: "linear-gradient(to right, #3b82f6, #2563eb)",
-            color: "#fff",
-          }}
-          icon={<EditOutlined />}
-        />
-      </Popconfirm>
+          {/* Edit */}
+          <Popconfirm
+            title="Are you sure ?"
+            description="Once you update, you can also re-update!"
+            onCancel={() => messageApi.info("No changes occur !")}
+            onConfirm={() => onEditCustomer(obj)}
+          >
+            <Button
+              type="text"
+              style={{
+                background: "linear-gradient(to right, #3b82f6, #2563eb)",
+                color: "#fff",
+              }}
+              icon={<EditOutlined />}
+            />
+          </Popconfirm>
 
-      {/* Delete */}
-      <Popconfirm
-        title="Are you sure ?"
-        description="Once you delete, you cannot restore!"
-        onCancel={() => messageApi.info("Your data is safe!")}
-        onConfirm={() => onDeleteCustomer(obj._id, obj.customerLoginId)}
-      >
-        <Button
-          type="text"
-          style={{
-            background: "linear-gradient(to right, #f43f5e, #e11d48)",
-            color: "#fff",
-          }}
-          icon={<DeleteOutlined />}
-        />
-      </Popconfirm>
-    </div>
-  ),
-},
+          {/* Delete */}
+          <Popconfirm
+            title="Are you sure ?"
+            description="Once you delete, you cannot restore!"
+            onCancel={() => messageApi.info("Your data is safe!")}
+            onConfirm={() => onDeleteCustomer(obj._id, obj.customerLoginId)}
+          >
+            <Button
+              type="text"
+              style={{
+                background: "linear-gradient(to right, #f43f5e, #e11d48)",
+                color: "#fff",
+              }}
+              icon={<DeleteOutlined />}
+            />
+          </Popconfirm>
+        </div>
+      ),
+    },
   ];
 
   return (
