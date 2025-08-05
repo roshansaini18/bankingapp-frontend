@@ -4,7 +4,7 @@ import useSWR from "swr";
 import {fetchData} from "../../modules/modules";
 const EmployeeDashboard = () => {
    //get userInfo from sessionStorage
-  const userInfo=JSON.parse(sessionStorage.getItem("userInfo"));
+  const userInfo=JSON.parse(localStorage.getItem("userInfo"));
   const {data:trData,error:trError}=useSWR(
     `/api/transaction/summary?branch=${userInfo.branch}`,
     fetchData,
