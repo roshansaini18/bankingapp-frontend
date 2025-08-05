@@ -91,7 +91,6 @@ useEffect(() => {
       if (apiUserType === role) {
         console.log("6. ✅ SUCCESS: Role matches. User is authorized.");
         setAuthorised(true);
-        localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
       } else {
         console.error("7. ❌ FAILURE: Role mismatch.");
         console.error(`   > API returned role: '${apiUserType}'`);
