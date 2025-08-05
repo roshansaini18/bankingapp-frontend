@@ -22,13 +22,16 @@ import {
 } from "@ant-design/icons";
 import { trimData, http, fetchData, uploadFile } from "../../../modules/modules";
 const { Item } = Form;
-import { useEffect, useState, useRef } from "react"; // FIX: Import useRef
+import { useEffect, useState, useRef } from "react";
 import useSWR from "swr";
+
+// FIX: Define the ImageKit base URL once at the top
+const imageKitBaseUrl = "https://ik.imagekit.io/gr14ysun7";
 
 const NewEmployee = () => {
   // state
   const [empForm] = Form.useForm();
-  const formCardRef = useRef(null); // FIX: Create a ref for the form card
+  const formCardRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState(null);
   const [messageApi, context] = message.useMessage();
@@ -128,14 +131,12 @@ const NewEmployee = () => {
     }
   };
 
-  // FIX: Updated edit function to scroll the form into view
   const onEditUser = (obj) => {
     setEdit(obj);
     empForm.setFieldsValue(obj);
     formCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // FIX: Added a function to cancel the edit state
   const onCancelEdit = () => {
     setEdit(null);
     empForm.resetFields();
@@ -192,7 +193,7 @@ const NewEmployee = () => {
           emp?.userType?.toLowerCase().includes(val) ||
           emp?.address?.toLowerCase().includes(val) ||
           emp?.branch?.toLowerCase().includes(val) ||
-          emp?.fullName?.toLowerCase().includes(val) // Corrected from 'fullname'
+          emp?.fullName?.toLowerCase().includes(val)
         );
       });
     setAllEmployee(filter);
@@ -204,12 +205,27 @@ const NewEmployee = () => {
     fontWeight: "bold",
   };
 
-  // columns definition (no changes needed here)
   const columns = [
-    { title: "Profile", key: "profile", render: (_, obj) => <Image src={`${import.meta.env.VITE_BASEURL}/${obj.profile}`} className="rounded-full" width={32} height={32} /> },
+    {
+      title: "Profile",
+      key: "profile",
+      render: (_, obj) => (
+        <Image
+          // FIX: Use ImageKit URL with optimization for fast-loading thumbnails
+          src={`${imageKitBaseUrl}/${obj.profile}?tr=w-32,h-32`}
+          // FIX: Add a preview prop to show the full-size image on click
+          preview={{
+            src: `${imageKitBaseUrl}/${obj.profile}`,
+          }}
+          className="rounded-full object-cover"
+          width={32}
+          height={32}
+        />
+      ),
+    },
     { title: "User type", dataIndex: "userType", key: "userType", render: (text) => <span className={`font-semibold ${text === "admin" ? "text-orange-500" : "text-green-500"} text-xs sm:text-sm md:text-base`}>{text}</span> },
     { title: "Branch", dataIndex: "branch", key: "branch", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
-    { title: "Fullname", dataIndex: "fullName", key: "fullname", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> }, // Corrected dataIndex to fullName
+    { title: "Fullname", dataIndex: "fullName", key: "fullName", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
     { title: "Email", dataIndex: "email", key: "email", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
     { title: "Mobile", dataIndex: "mobile", key: "mobile", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
     { title: "Address", dataIndex: "address", key: "address", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
@@ -238,14 +254,12 @@ const NewEmployee = () => {
     <Adminlayout>
       {context}
       <div ref={formCardRef} className="grid md:grid-cols-3 gap-1 sm:gap-3 px-0">
-        {/* Add/Edit Employee Card */}
         <Card
-          // FIX: Title is now dynamic
           title={edit ? "Edit Employee" : "Add New Employee"}
           headStyle={headerStyle}
           className="text-xs sm:text-sm md:text-base p-2 sm:p-4"
         >
-          <Form form={empForm} onFinish={edit ? onUpdate : onFinish} layout="vertical" initialValues={{ branch: null, fullname: '', mobile: '', email: '', password: '', address: '' }}>
+          <Form form={empForm} onFinish={edit ? onUpdate : onFinish} layout="vertical" initialValues={{ branch: null, fullName: '', mobile: '', email: '', password: '', address: '' }}>
             <Item name="branch" label="Select Branch" rules={[{ required: true }]}>
               <Select placeholder="Select Branch" options={allBranch} />
             </Item>
@@ -262,7 +276,6 @@ const NewEmployee = () => {
               <Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
                 <Input placeholder="Enter email" disabled={!!edit} />
               </Item>
-              {/* FIX: Password is not required when editing */}
               <Item name="password" label="Password" rules={[{ required: !edit }]}>
                 <Input placeholder="Enter password" disabled={!!edit} />
               </Item>
@@ -281,7 +294,6 @@ const NewEmployee = () => {
                 >
                   {edit ? "Update Employee" : "Submit"}
                 </Button>
-                {/* FIX: Show cancel button only in edit mode */}
                 {edit && (
                   <Button onClick={onCancelEdit} className="!w-full">
                     Cancel
@@ -292,7 +304,6 @@ const NewEmployee = () => {
           </Form>
         </Card>
 
-        {/* Employee List Card */}
         <Card
           className="md:col-span-2 text-xs sm:text-sm md:text-base p-2 sm:p-4"
           title="Employee list"
