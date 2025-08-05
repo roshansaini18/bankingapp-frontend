@@ -8,6 +8,7 @@ import {
   LogoutOutlined,
   BulbOutlined,
   BulbFilled,
+  UsergroupAddOutlined,
 } from '@ant-design/icons';
 import {
   Layout,
@@ -74,6 +75,11 @@ const Customerlayout = ({ children }) => {
       icon: <AccountBookOutlined />,
       label: <Link to="/customer/transaction">Transactions</Link>,
     },
+     {
+      key: '/customer/payees',
+      icon: <UsergroupAddOutlined  />,
+      label: <Link to="/customer/payees">Payees</Link>,
+    },
     {
       key: '/customer/profile',
       icon: <UserOutlined />,
@@ -115,6 +121,7 @@ const Customerlayout = ({ children }) => {
     '/customer': 'Dashboard',
     '/customer/transaction': 'Transactions',
     '/customer/profile': 'Profile',
+    '/customer/payees': 'Payees',
   };
 
   const pathSnippets = pathname.split('/').filter((i) => i);
