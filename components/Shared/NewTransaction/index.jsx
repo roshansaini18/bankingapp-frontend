@@ -17,11 +17,13 @@ const NewTransaction = () => {
   const [loading, setLoading] = useState(false); // FIX: Add loading state for search
 
   // Submit transaction
+// Submit transaction
   const onFinish = async (values) => {
     try {
       const finalObj = trimData(values);
       let balance = 0;
 
+      // --- YOUR EXISTING LOGIC (NO CHANGES HERE) ---
       if (finalObj.transactionType === "cr") {
         balance =
           Number(accountDetails.finalBalance) +
@@ -37,22 +39,49 @@ const NewTransaction = () => {
           Number(accountDetails.finalBalance) -
           Number(finalObj.transactionAmount);
       }
-
       finalObj.currentBalance = accountDetails.finalBalance;
       finalObj.customerId = accountDetails._id;
       finalObj.accountNo = accountDetails.accountNo;
       finalObj.branch = userInfo.branch;
-
       const httpReq = http();
-      await httpReq.post("/api/transaction", finalObj);
+      await httpReq.post("/api/send-email/transaction", finalObj);
       await httpReq.put(`/api/customers/${accountDetails._id}`, {
         finalBalance: balance,
       });
+      // --- END OF EXISTING LOGIC ---
 
-      messageApi.success("Transaction created successfully!");
+
+      // ----- FIX: ADD THIS NEW BLOCK TO SEND THE EMAIL NOTIFICATION -----
+      try {
+        messageApi.loading("Sending transaction email...");
+        
+        const emailData = {
+          emailType: "transaction", // To tell the backend which template to use
+          to: accountDetails.email,
+          fullName: accountDetails.fullName,
+          accountNo: accountDetails.accountNo,
+          transactionType: finalObj.transactionType,
+          transactionAmount: finalObj.transactionAmount,
+          newBalance: balance,
+          currency: accountDetails.currency,
+          reference: finalObj.refrence,
+        };
+        
+        await httpReq.post("/api/send-email", emailData);
+        messageApi.success("Transaction created and email sent!");
+
+      } catch (emailError) {
+        // If the email fails, the transaction is still successful.
+        // We just show a different message and log the error.
+        console.error("Transaction succeeded, but email failed to send:", emailError);
+        messageApi.warning("Transaction successful, but failed to send email alert.");
+      }
+      // ----- END OF NEW BLOCK -----
+
       transactionForm.resetFields();
       setAccountDetails(null);
-      setAccountNo(""); // Clear the search input
+      setScrollValue(0);
+      setAccountNo("");
     } catch (error) {
       messageApi.error("Unable to process transaction!");
     }
