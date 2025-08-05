@@ -164,7 +164,25 @@ const Login = () => {
         messageApi.warning("Wrong credentials!");
       }
     } catch (err) {
-      messageApi.error(err?.response?.data?.message || "Login failed");
+      // --- Enhanced Error Logging for Debugging ---
+      console.error("Login API call failed:", err); // Log the full error object
+
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx (e.g., 401, 404, 500)
+        console.error("Server responded with error status:", err.response.status);
+        console.error("Server error data:", err.response.data);
+        messageApi.error(err.response.data?.message || `Error: ${err.response.status}`);
+      } else if (err.request) {
+        // The request was made but no response was received.
+        // This usually means the backend server is down or the API URL is wrong.
+        console.error("No response received from server. Check API URL and server status.", err.request);
+        messageApi.error("Cannot connect to the server. Please check your connection and try again.");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up the request:', err.message);
+        messageApi.error("An unexpected error occurred during login.");
+      }
     }
   };
 
@@ -230,4 +248,3 @@ const Login = () => {
 };
 
 export default Login;
-
