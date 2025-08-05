@@ -34,7 +34,7 @@ const baseUrl = "https://ik.imagekit.io/gr14ysun7";
 
 const NewAccount = () => {
   //getInfo from sessionStorage
-  const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
   const [accountForm] = Form.useForm();
   const [messageApi, context] = message.useMessage();
