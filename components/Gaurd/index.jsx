@@ -64,45 +64,57 @@ const Guard = ({ endpoint, role }) => {
   const [authorised, setAuthorised] = useState(null); // Use null to represent the initial pending state
   const [loader, setLoader] = useState(true);
 
-  useEffect(() => {
-    const verifyToken = async () => {
-      if (!token) {
+// In Guard.js
+
+useEffect(() => {
+  const verifyToken = async () => {
+    console.log("--- Guard Verification Started ---");
+    console.log("1. Token from cookies:", token);
+    console.log("2. Role prop being checked for:", role);
+    console.log("3. Verification endpoint:", endpoint);
+
+    if (!token) {
+      console.log("Verification failed: No token found in cookies.");
+      setAuthorised(false);
+      setLoader(false);
+      return;
+    }
+
+    try {
+      const httpReq = http(token);
+      const { data } = await httpReq.get(endpoint);
+      console.log("4. SUCCESS: API call succeeded. Full response data from server:", data);
+
+      const apiUserType = data?.userType || data?.data?.userType;
+      console.log("5. Extracted user type from API response:", apiUserType);
+
+      if (apiUserType === role) {
+        console.log("6. ✅ SUCCESS: Role matches. User is authorized.");
+        setAuthorised(true);
+        localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
+      } else {
+        console.error("7. ❌ FAILURE: Role mismatch.");
+        console.error(`   > API returned role: '${apiUserType}'`);
+        console.error(`   > Required role: '${role}'`);
         setAuthorised(false);
-        setLoader(false);
-        return;
       }
-
-      try {
-        const httpReq = http(token);
-        const { data } = await httpReq.get(endpoint);
-
-        // Get the user type directly from the API response
-        const apiUserType = data?.userType || data?.data?.userType;
-
-        // *** FIX: Perform the role check here directly ***
-        if (apiUserType === role) {
-          // If the role matches, set authorised to true
-          setAuthorised(true);
-          // Also, update localStorage with the latest user info from the verification endpoint
-          localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
-        } else {
-          // If roles don't match, explicitly set to false
-          setAuthorised(false);
-        }
-      } catch (err) {
-        // Any error in verification means not authorised
-        setAuthorised(false);
-        // It's good practice to remove invalid tokens
-        cookies.remove("authToken", { path: "/" });
-      } finally {
-        setLoader(false);
+    } catch (err) {
+      console.error("7. ❌ FAILURE: The API call threw an error.", err);
+      if (err.response) {
+        // This is for errors returned by the server (e.g., 401, 403, 500)
+        console.error("   > Server responded with status:", err.response.status);
+        console.error("   > Server error message:", err.response.data);
       }
-    };
+      setAuthorised(false);
+      cookies.remove("authToken", { path: "/" });
+    } finally {
+      console.log("--- Guard Verification Finished ---");
+      setLoader(false);
+    }
+  };
 
-    verifyToken();
-    // We only need to run this effect when the component mounts or if the token changes.
-    // 'endpoint' and 'role' are props and should be stable.
-  }, [token, endpoint, role]);
+  verifyToken();
+}, [token, endpoint, role]);
 
   // Show loader while verification is in progress
   if (loader || authorised === null) {
