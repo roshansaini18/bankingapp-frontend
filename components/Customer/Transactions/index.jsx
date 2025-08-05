@@ -25,7 +25,7 @@ import dayjs from "dayjs";
 const { Text } = Typography;
 
 const CustomerTransactions = () => {
-  const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
   const { data: trData, error: trError } = useSWR(
     userInfo?.accountNo
