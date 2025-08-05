@@ -1,7 +1,10 @@
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined, LoadingOutlined } from "@ant-design/icons"; // FIX: Import LoadingOutlined
 import { Button, Card, Empty, Form, Image, Input, message, Select } from "antd";
 import { useState } from "react";
 import { http, trimData } from "../../../modules/modules";
+
+// FIX: Define the ImageKit base URL once at the top
+const imageKitBaseUrl = "https://ik.imagekit.io/gr14ysun7";
 
 const NewTransaction = () => {
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -11,6 +14,7 @@ const NewTransaction = () => {
 
   const [accountNo, setAccountNo] = useState("");
   const [accountDetails, setAccountDetails] = useState(null);
+  const [loading, setLoading] = useState(false); // FIX: Add loading state for search
 
   // Submit transaction
   const onFinish = async (values) => {
@@ -48,6 +52,7 @@ const NewTransaction = () => {
       messageApi.success("Transaction created successfully!");
       transactionForm.resetFields();
       setAccountDetails(null);
+      setAccountNo(""); // Clear the search input
     } catch (error) {
       messageApi.error("Unable to process transaction!");
     }
@@ -59,6 +64,7 @@ const NewTransaction = () => {
       return messageApi.warning("Please enter an account number");
     }
     try {
+      setLoading(true); // FIX: Set loading true
       const obj = {
         accountNo,
         branch: userInfo?.branch,
@@ -68,13 +74,16 @@ const NewTransaction = () => {
       const { data } = await httpReq.post("/api/find-by-account", obj);
 
       if (data?.data) {
-        setAccountDetails(data?.data);
+        setAccountDetails(data.data);
       } else {
-        messageApi.warning("There is no record of this account");
+        messageApi.warning("No account found with this number.");
         setAccountDetails(null);
       }
     } catch (error) {
-      messageApi.error("There is no record of this account");
+      messageApi.error("An error occurred while searching for the account.");
+      setAccountDetails(null);
+    } finally {
+      setLoading(false); // FIX: Set loading false
     }
   };
 
@@ -96,6 +105,7 @@ const NewTransaction = () => {
             placeholder="Enter account number"
             value={accountNo}
             onChange={(e) => setAccountNo(e.target.value)}
+            onPressEnter={searchByAccountNo} // Allow searching with Enter key
             className="w-full sm:w-64"
             style={{
               borderColor: "#6366f1",
@@ -103,15 +113,19 @@ const NewTransaction = () => {
               borderRadius: "6px",
             }}
             addonAfter={
-              <SearchOutlined
-                style={{
-                  cursor: "pointer",
-                  color: "#3b82f6",
-                  fontSize: "18px",
-                  transition: "0.2s",
-                }}
-                onClick={searchByAccountNo}
-              />
+              loading ? ( // FIX: Show loading spinner while searching
+                <LoadingOutlined />
+              ) : (
+                <SearchOutlined
+                  style={{
+                    cursor: "pointer",
+                    color: "#3b82f6",
+                    fontSize: "18px",
+                    transition: "0.2s",
+                  }}
+                  onClick={searchByAccountNo}
+                />
+              )
             }
           />
         }
@@ -121,14 +135,26 @@ const NewTransaction = () => {
             {/* Profile & Signature */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-6">
               <Image
-                src={`${import.meta.env.VITE_BASEURL}/${accountDetails?.profile}`}
+                // FIX: Use ImageKit URL with optimization
+                src={`${imageKitBaseUrl}/${accountDetails?.profile}?tr=w-90,h-90`}
+                // FIX: Add preview for full-size image
+                preview={{
+                  src: `${imageKitBaseUrl}/${accountDetails?.profile}`,
+                }}
                 width={90}
-                className="rounded-full border-2 border-indigo-400 shadow-lg"
+                height={90}
+                className="rounded-full border-2 border-indigo-400 shadow-lg object-cover"
               />
               <Image
-                src={`${import.meta.env.VITE_BASEURL}/${accountDetails?.signature}`}
+                // FIX: Use ImageKit URL with optimization
+                src={`${imageKitBaseUrl}/${accountDetails?.signature}?tr=w-90,h-90`}
+                // FIX: Add preview for full-size image
+                preview={{
+                  src: `${imageKitBaseUrl}/${accountDetails?.signature}`,
+                }}
                 width={90}
-                className="rounded-full border-2 border-emerald-400 shadow-lg"
+                height={90}
+                className="rounded-full border-2 border-emerald-400 shadow-lg object-cover"
               />
             </div>
 
@@ -174,7 +200,7 @@ const NewTransaction = () => {
                 </div>
                 <div className="flex justify-between text-sm md:text-base text-gray-700">
                   <b>Currency:</b>
-                  <b className="text-gray-900">{accountDetails?.currency || "N/A"}</b>
+                  <b className="text-gray-900">{accountDetails?.currency?.toUpperCase() || "N/A"}</b>
                 </div>
               </div>
 
@@ -206,7 +232,6 @@ const NewTransaction = () => {
                       ]}
                     />
                   </Form.Item>
-
                   <Form.Item
                     label="Transaction Amount"
                     name="transactionAmount"
@@ -221,17 +246,16 @@ const NewTransaction = () => {
                       }}
                     />
                   </Form.Item>
-
-                  <Form.Item label="Reference" name="refrence" className="sm:col-span-2">
+                  <Form.Item label="Reference" name="reference" className="sm:col-span-2">
                     <Input.TextArea
                       rows={3}
+                      placeholder="e.g., Cash deposit, fee payment"
                       style={{
                         borderColor: "#6366f1",
                       }}
                     />
                   </Form.Item>
                 </div>
-
                 <Form.Item>
                   <Button
                     htmlType="submit"
@@ -252,7 +276,7 @@ const NewTransaction = () => {
             </div>
           </div>
         ) : (
-          <Empty description="Search an account to start a transaction" />
+          <Empty description="Search for a customer account to begin a transaction." />
         )}
       </Card>
     </div>
