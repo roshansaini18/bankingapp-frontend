@@ -48,6 +48,8 @@
 // export default Guard;
 
 
+// Guard.js (Corrected)
+
 import { useState, useEffect } from "react";
 import Cookies from "universal-cookie";
 import { http } from "../../modules/modules";
@@ -57,14 +59,13 @@ import Loader from "../Loader";
 const Guard = ({ endpoint, role }) => {
   const cookies = new Cookies();
   const token = cookies.get("authToken");
-  console.log(token);
-  const [authorised, setAuthorised] = useState(false);
-  const [userType, setUserType] = useState(null);
+
+  // No need for userType state here, it was causing the race condition
+  const [authorised, setAuthorised] = useState(null); // Use null to represent the initial pending state
   const [loader, setLoader] = useState(true);
-  
+
   useEffect(() => {
     const verifyToken = async () => {
-      // If no token, mark unauthorized and stop loader
       if (!token) {
         setAuthorised(false);
         setLoader(false);
@@ -72,41 +73,44 @@ const Guard = ({ endpoint, role }) => {
       }
 
       try {
-        // Send verification request with token
         const httpReq = http(token);
         const { data } = await httpReq.get(endpoint);
-         console.log(data);
-        // Handle possible API response formats
-        const user = data?.userType || data?.data?.userType;
 
-        // Save user data consistently in localStorage
-        localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
+        // Get the user type directly from the API response
+        const apiUserType = data?.userType || data?.data?.userType;
 
-        setUserType(user);
-         console.log(userType);
-        setAuthorised(true);
+        // *** FIX: Perform the role check here directly ***
+        if (apiUserType === role) {
+          // If the role matches, set authorised to true
+          setAuthorised(true);
+          // Also, update localStorage with the latest user info from the verification endpoint
+          localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
+        } else {
+          // If roles don't match, explicitly set to false
+          setAuthorised(false);
+        }
       } catch (err) {
-        setUserType(null);
+        // Any error in verification means not authorised
         setAuthorised(false);
+        // It's good practice to remove invalid tokens
+        cookies.remove("authToken", { path: "/" });
       } finally {
         setLoader(false);
       }
     };
 
     verifyToken();
-  }, [endpoint, token]);
+    // We only need to run this effect when the component mounts or if the token changes.
+    // 'endpoint' and 'role' are props and should be stable.
+  }, [token, endpoint, role]);
 
-  // Show loader while verifying
-  if (loader) return <Loader />;
+  // Show loader while verification is in progress
+  if (loader || authorised === null) {
+    return <Loader />;
+  }
 
-  // Redirect if no token or unauthorized
-  if (!token || !authorised) return <Navigate to="/" />;
-
-  // Redirect if authorized but role mismatch
-  if (authorised && userType !== role) return <Navigate to="/" />;
-
-  // Allow access
-  return <Outlet />;
+  // If authorised, show the child component. Otherwise, redirect to the home page.
+  return authorised ? <Outlet /> : <Navigate to="/" />;
 };
 
 export default Guard;
