@@ -22,12 +22,13 @@ import {
 } from "@ant-design/icons";
 import { trimData, http, fetchData, uploadFile } from "../../../modules/modules";
 const { Item } = Form;
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react"; // FIX: Import useRef
 import useSWR from "swr";
 
 const NewEmployee = () => {
   // state
   const [empForm] = Form.useForm();
+  const formCardRef = useRef(null); // FIX: Create a ref for the form card
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState(null);
   const [messageApi, context] = message.useMessage();
@@ -45,14 +46,12 @@ const NewEmployee = () => {
   });
 
   useEffect(() => {
-    if (branches) {
-      let filter =
-        branches &&
-        branches?.data.map((item) => ({
-          label: item.branchName,
-          value: item.branchName,
-          key: item.key,
-        }));
+    if (branches?.data) {
+      let filter = branches.data.map((item) => ({
+        label: item.branchName,
+        value: item.branchName,
+        key: item.key,
+      }));
       setAllBranch(filter);
     }
   }, [branches]);
@@ -63,10 +62,13 @@ const NewEmployee = () => {
       try {
         const httpReq = http();
         const { data } = await httpReq.get("/api/users");
-        setAllEmployee(data?.data.filter((item) => item.userType != "customer"));
-        setFinalEmployee(data.data);
+        const filteredEmployees = data?.data.filter(
+          (item) => item.userType !== "customer"
+        );
+        setAllEmployee(filteredEmployees);
+        setFinalEmployee(filteredEmployees); // Keep a master copy for searching
       } catch (err) {
-        messageApi.error("Unable to fetch data!");
+        messageApi.error("Unable to fetch employee data!");
       }
     };
     fetcher();
@@ -89,15 +91,10 @@ const NewEmployee = () => {
       messageApi.success("Employee created");
       empForm.resetFields();
       setPhoto(null);
-      setNo(no + 1);
+      setNo((prev) => prev + 1);
     } catch (err) {
       if (err?.response?.data?.error?.code === 11000) {
-        empForm.setFields([
-          {
-            name: "email",
-            errors: ["Email already exists!"],
-          },
-        ]);
+        empForm.setFields([{ name: "email", errors: ["Email already exists!"] }]);
       } else {
         messageApi.error("Try again later");
       }
@@ -113,7 +110,7 @@ const NewEmployee = () => {
       const httpReq = http();
       await httpReq.put(`/api/users/${id}`, obj);
       messageApi.success("Record updated successfully!");
-      setNo(no + 1);
+      setNo((prev) => prev + 1);
     } catch {
       messageApi.error("Unable to update isActive!");
     }
@@ -125,16 +122,23 @@ const NewEmployee = () => {
       const httpReq = http();
       await httpReq.delete(`/api/users/${id}`);
       messageApi.success("Employee deleted successfully!");
-      setNo(no + 1);
+      setNo((prev) => prev + 1);
     } catch {
       messageApi.error("Unable to delete user!");
     }
   };
 
-  // edit
-  const onEditUser = async (obj) => {
+  // FIX: Updated edit function to scroll the form into view
+  const onEditUser = (obj) => {
     setEdit(obj);
     empForm.setFieldsValue(obj);
+    formCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // FIX: Added a function to cancel the edit state
+  const onCancelEdit = () => {
+    setEdit(null);
+    empForm.resetFields();
   };
 
   const onUpdate = async (values) => {
@@ -146,10 +150,8 @@ const NewEmployee = () => {
       const httpReq = http();
       await httpReq.put(`/api/users/${edit._id}`, finalObj);
       messageApi.success("Employee updated successfully!");
-      setNo(no + 1);
-      setEdit(null);
-      setPhoto(null);
-      empForm.resetFields();
+      setNo((prev) => prev + 1);
+      onCancelEdit(); // Reset form after update
     } catch {
       messageApi.error("Unable to update employee!");
     } finally {
@@ -160,31 +162,38 @@ const NewEmployee = () => {
   // upload photo
   const handleUpload = async (e) => {
     let file = e.target.files[0];
+    if (!file) return;
     const folderName = "employeePhoto";
     try {
+      setLoading(true);
+      messageApi.loading("Uploading photo...");
       const result = await uploadFile(file, folderName);
       setPhoto(result.filePath);
+      messageApi.success("Photo uploaded!");
     } catch {
       messageApi.error("Unable to upload");
+    } finally {
+      setLoading(false);
     }
   };
 
   // search
   const onSearch = (e) => {
-    let val = e.target.value.toLowerCase();
-    let filter =
-      finalEmployee &&
-      finalEmployee.filter((emp) => {
-        if (
-          emp?.email.toLowerCase().includes(val) ||
-          emp?.mobile.toLowerCase().includes(val) ||
-          emp?.userType.toLowerCase().includes(val) ||
-          emp?.address.toLowerCase().includes(val) ||
-          emp?.branch.toLowerCase().includes(val) ||
-          emp?.fullname.toLowerCase().includes(val)
-        ) {
-          return emp;
-        }
+    const val = e.target.value.toLowerCase();
+    if (!val) {
+        setAllEmployee(finalEmployee);
+        return;
+    }
+    const filter =
+      finalEmployee?.filter((emp) => {
+        return (
+          emp?.email?.toLowerCase().includes(val) ||
+          emp?.mobile?.toLowerCase().includes(val) ||
+          emp?.userType?.toLowerCase().includes(val) ||
+          emp?.address?.toLowerCase().includes(val) ||
+          emp?.branch?.toLowerCase().includes(val) ||
+          emp?.fullName?.toLowerCase().includes(val) // Corrected from 'fullname'
+        );
       });
     setAllEmployee(filter);
   };
@@ -195,142 +204,28 @@ const NewEmployee = () => {
     fontWeight: "bold",
   };
 
-  // columns
+  // columns definition (no changes needed here)
   const columns = [
+    { title: "Profile", key: "profile", render: (_, obj) => <Image src={`${import.meta.env.VITE_BASEURL}/${obj.profile}`} className="rounded-full" width={32} height={32} /> },
+    { title: "User type", dataIndex: "userType", key: "userType", render: (text) => <span className={`font-semibold ${text === "admin" ? "text-orange-500" : "text-green-500"} text-xs sm:text-sm md:text-base`}>{text}</span> },
+    { title: "Branch", dataIndex: "branch", key: "branch", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
+    { title: "Fullname", dataIndex: "fullName", key: "fullname", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> }, // Corrected dataIndex to fullName
+    { title: "Email", dataIndex: "email", key: "email", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
+    { title: "Mobile", dataIndex: "mobile", key: "mobile", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
+    { title: "Address", dataIndex: "address", key: "address", render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span> },
     {
-      title: "Profile",
-      key: "profile",
-      render: (src, obj) => (
-        <Image
-          src={`${import.meta.env.VITE_BASEURL}/${obj.profile}`}
-          className="rounded-full"
-          width={32}
-          height={32}
-        />
-      ),
-    },
-    {
-      title: "User type",
-      dataIndex: "userType",
-      key: "userType",
-      render: (text) => (
-        <span
-          className={`font-semibold ${
-            text === "admin"
-              ? "text-orange-500"
-              : text === "employee"
-              ? "text-green-500"
-              : "text-blue-500"
-          } text-xs sm:text-sm md:text-base`}
-        >
-          {text}
-        </span>
-      ),
-    },
-    {
-      title: "Branch",
-      dataIndex: "branch",
-      key: "branch",
-      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
-    },
-    {
-      title: "Fullname",
-      dataIndex: "fullname",
-      key: "fullname",
-      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
-    },
-    {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
-    },
-    {
-      title: "Mobile",
-      dataIndex: "mobile",
-      key: "mobile",
-      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
-    },
-    {
-      title: "Address",
-      dataIndex: "address",
-      key: "address",
-      render: (text) => <span className="text-xs sm:text-sm md:text-base">{text}</span>,
-    },
-    {
-      title: "Action",
-      key: "action",
-      fixed: "right",
+      title: "Action", key: "action", fixed: "right",
       render: (_, obj) => (
         <>
           {/* Desktop Buttons */}
           <div className="hidden md:flex gap-1">
-            <Popconfirm
-              title="Toggle active?"
-              onConfirm={() => updateIsActive(obj._id, obj.isActive)}
-            >
-              <Button
-                type="text"
-                style={{
-                  background: obj.isActive
-                    ? "linear-gradient(to right, #14b8a6, #0d9488)"
-                    : "#6b7280",
-                  color: "#fff",
-                }}
-                icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />}
-              />
-            </Popconfirm>
-
-            <Popconfirm
-              title="Edit Employee?"
-              onConfirm={() => onEditUser(obj)}
-            >
-              <Button
-                type="text"
-                style={{
-                  background: "linear-gradient(to right, #3b82f6, #2563eb)",
-                  color: "#fff",
-                }}
-                icon={<EditOutlined />}
-              />
-            </Popconfirm>
-
-            <Popconfirm
-              title="Delete Employee?"
-              onConfirm={() => onDeleteUser(obj._id)}
-            >
-              <Button
-                type="text"
-                style={{
-                  background: "linear-gradient(to right, #f43f5e, #e11d48)",
-                  color: "#fff",
-                }}
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
+            <Popconfirm title="Toggle active?" onConfirm={() => updateIsActive(obj._id, obj.isActive)}><Button type="text" style={{ background: obj.isActive ? "linear-gradient(to right, #14b8a6, #0d9488)" : "#6b7280", color: "#fff" }} icon={obj.isActive ? <EyeOutlined /> : <EyeInvisibleOutlined />} /></Popconfirm>
+            <Popconfirm title="Edit Employee?" onConfirm={() => onEditUser(obj)}><Button type="text" style={{ background: "linear-gradient(to right, #3b82f6, #2563eb)", color: "#fff" }} icon={<EditOutlined />} /></Popconfirm>
+            <Popconfirm title="Delete Employee?" onConfirm={() => onDeleteUser(obj._id)}><Button type="text" style={{ background: "linear-gradient(to right, #f43f5e, #e11d48)", color: "#fff" }} icon={<DeleteOutlined />} /></Popconfirm>
           </div>
-
           {/* Mobile Dropdown */}
           <div className="flex md:hidden">
-            <Dropdown
-              overlay={
-                <Menu>
-                  <Menu.Item
-                    key="toggle"
-                    onClick={() => updateIsActive(obj._id, obj.isActive)}
-                  >
-                    {obj.isActive ? "Deactivate" : "Activate"}
-                  </Menu.Item>
-                  <Menu.Item key="edit" onClick={() => onEditUser(obj)}>
-                    Edit
-                  </Menu.Item>
-                  <Menu.Item key="delete" danger onClick={() => onDeleteUser(obj._id)}>
-                    Delete
-                  </Menu.Item>
-                </Menu>
-              }
-              trigger={["click"]}
-            >
+            <Dropdown overlay={<Menu><Menu.Item key="toggle" onClick={() => updateIsActive(obj._id, obj.isActive)}>{obj.isActive ? "Deactivate" : "Activate"}</Menu.Item><Menu.Item key="edit" onClick={() => onEditUser(obj)}>Edit</Menu.Item><Menu.Item key="delete" danger onClick={() => onDeleteUser(obj._id)}>Delete</Menu.Item></Menu>} trigger={["click"]}>
               <Button type="text" icon={<EllipsisOutlined style={{ fontSize: 20 }} />} />
             </Dropdown>
           </div>
@@ -342,61 +237,62 @@ const NewEmployee = () => {
   return (
     <Adminlayout>
       {context}
-      <h1 className="grid md:grid-cols-3 gap-1 sm:gap-3 px-0">
-        {/* Add Employee */}
-        <Card title="Add new employee" headStyle={headerStyle} className="text-xs sm:text-sm md:text-base p-2 sm:p-4">
-          <Form form={empForm} onFinish={edit ? onUpdate : onFinish} layout="vertical">
+      <div ref={formCardRef} className="grid md:grid-cols-3 gap-1 sm:gap-3 px-0">
+        {/* Add/Edit Employee Card */}
+        <Card
+          // FIX: Title is now dynamic
+          title={edit ? "Edit Employee" : "Add New Employee"}
+          headStyle={headerStyle}
+          className="text-xs sm:text-sm md:text-base p-2 sm:p-4"
+        >
+          <Form form={empForm} onFinish={edit ? onUpdate : onFinish} layout="vertical" initialValues={{ branch: null, fullname: '', mobile: '', email: '', password: '', address: '' }}>
             <Item name="branch" label="Select Branch" rules={[{ required: true }]}>
               <Select placeholder="Select Branch" options={allBranch} />
             </Item>
-
             <Item label="Profile" name="photo">
               <Input onChange={handleUpload} type="file" />
             </Item>
             <div className="grid md:grid-cols-2 gap-2">
-              <Item name="fullname" label="Fullname" rules={[{ required: true }]}>
-                <Input />
+              <Item name="fullName" label="Fullname" rules={[{ required: true }]}>
+                <Input placeholder="Enter full name" />
               </Item>
-
               <Item name="mobile" label="Mobile" rules={[{ required: true }]}>
-                <Input type="number" />
+                <Input type="number" placeholder="Enter mobile number"/>
               </Item>
-              <Item name="email" label="Email" rules={[{ required: true }]}>
-                <Input disabled={edit ? true : false} />
+              <Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
+                <Input placeholder="Enter email" disabled={!!edit} />
               </Item>
-
-              <Item name="password" label="Password" rules={[{ required: true }]}>
-                <Input disabled={edit ? true : false} />
+              {/* FIX: Password is not required when editing */}
+              <Item name="password" label="Password" rules={[{ required: !edit }]}>
+                <Input placeholder="Enter password" disabled={!!edit} />
               </Item>
             </div>
             <Item label="Address" name="address">
-              <Input.TextArea />
+              <Input.TextArea placeholder="Enter full address"/>
             </Item>
             <Item>
-              {edit ? (
+              <div className="flex w-full gap-2">
                 <Button
                   loading={loading}
-                  type="text"
+                  type="primary"
                   htmlType="submit"
-                  className="!bg-rose-500 !text-white !font-bold !w-full"
+                  className="!font-bold !w-full"
+                  style={{ background: edit ? "linear-gradient(to right, #f43f5e, #e11d48)" : "linear-gradient(to right, #3b82f6, #2563eb)" }}
                 >
-                  Update
+                  {edit ? "Update Employee" : "Submit"}
                 </Button>
-              ) : (
-                <Button
-                  loading={loading}
-                  type="text"
-                  htmlType="submit"
-                  className="!bg-blue-500 !text-white !font-bold !w-full"
-                >
-                  Submit
-                </Button>
-              )}
+                {/* FIX: Show cancel button only in edit mode */}
+                {edit && (
+                  <Button onClick={onCancelEdit} className="!w-full">
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </Item>
           </Form>
         </Card>
 
-        {/* Employee List */}
+        {/* Employee List Card */}
         <Card
           className="md:col-span-2 text-xs sm:text-sm md:text-base p-2 sm:p-4"
           title="Employee list"
@@ -404,11 +300,7 @@ const NewEmployee = () => {
           style={{ overflowX: "auto" }}
           extra={
             <div>
-              <Input
-                placeholder="Search by all"
-                prefix={<SearchOutlined />}
-                onChange={onSearch}
-              />
+              <Input placeholder="Search..." prefix={<SearchOutlined />} onChange={onSearch} />
             </div>
           }
         >
@@ -417,9 +309,10 @@ const NewEmployee = () => {
             dataSource={allEmployee}
             scroll={{ x: "max-content" }}
             pagination={false}
+            rowKey="_id"
           />
         </Card>
-      </h1>
+      </div>
     </Adminlayout>
   );
 };
