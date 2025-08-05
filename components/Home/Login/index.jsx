@@ -24,7 +24,7 @@ const Login = () => {
         cookies.set("authToken", token, { path: "/", expires });
 
         if (user) {
-          localStorage.setItem("userInfo", JSON.stringify(user));
+          sessionStorage.setItem("userInfo", JSON.stringify(user));
         }
 
         if (userType === "admin") {
