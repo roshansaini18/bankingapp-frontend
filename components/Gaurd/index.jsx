@@ -57,11 +57,11 @@ import Loader from "../Loader";
 const Guard = ({ endpoint, role }) => {
   const cookies = new Cookies();
   const token = cookies.get("authToken");
-
+  console.log(token);
   const [authorised, setAuthorised] = useState(false);
   const [userType, setUserType] = useState(null);
   const [loader, setLoader] = useState(true);
-
+  
   useEffect(() => {
     const verifyToken = async () => {
       // If no token, mark unauthorized and stop loader
@@ -75,7 +75,7 @@ const Guard = ({ endpoint, role }) => {
         // Send verification request with token
         const httpReq = http(token);
         const { data } = await httpReq.get(endpoint);
-
+         console.log(data);
         // Handle possible API response formats
         const user = data?.userType || data?.data?.userType;
 
@@ -83,6 +83,7 @@ const Guard = ({ endpoint, role }) => {
         localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
 
         setUserType(user);
+         console.log(userType);
         setAuthorised(true);
       } catch (err) {
         setUserType(null);
