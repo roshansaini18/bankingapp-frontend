@@ -19,7 +19,7 @@ import dayjs from "dayjs";
 const { Title } = Typography;
 
 const Profile = () => {
-  const userInfo = JSON.parse(sessionStorage.getItem("userInfo")) || {};
+  const userInfo = JSON.parse(localStorage.getItem("userInfo")) || {};
   const [customer, setCustomer] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
 
