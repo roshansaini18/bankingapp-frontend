@@ -15,8 +15,6 @@ import Customerlayout from "../../Layout/Customerlayout";
 import { useEffect, useState } from "react";
 import { http } from "../../../modules/modules";
 import dayjs from "dayjs";
-import useSWR from "swr"; // Using SWR for consistency and caching
-import { fetchData } from "../../../modules/modules";
 
 const { Title } = Typography;
 
@@ -25,22 +23,17 @@ const imageKitBaseUrl = "https://ik.imagekit.io/gr14ysun7";
 
 const Profile = () => {
   const userInfo = JSON.parse(localStorage.getItem("userInfo")) || {};
+  const [customer, setCustomer] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
+
+  // Colors
+  const canaraBlue = "#003f6b";
+  const lightBlue = "#e6f0fa";
+  const accent = "#0075c9";
 
   // Preview Modal State
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
-
-  // FIX: Switched to a more efficient data fetching method using useSWR
-  // This fetches only ONE customer record using their ID, instead of all customers.
-  // Your backend needs an endpoint like GET /api/customers/:id
-  const { data: customerData, error } = useSWR(
-    userInfo?._id ? `/api/customers/${userInfo._id}` : null, // The key is conditional
-    fetchData // Assuming fetchData is your swr fetcher function
-  );
-  
-  // The customer object is now derived from the SWR response
-  const customer = customerData?.data;
 
   // Handle preview button click
   const handlePreview = (imagePath) => {
@@ -57,19 +50,25 @@ const Profile = () => {
   const handlePrintPassbook = () => {
     window.print();
   };
-  
-  if (error) {
-     messageApi.error("Unable to fetch customer data!");
-     return <div>Error loading profile.</div>;
-  }
-  if (!customer) {
-    return <div>Loading...</div>;
-  }
 
-  // Colors
-  const canaraBlue = "#003f6b";
-  const lightBlue = "#e6f0fa";
-  const accent = "#0075c9";
+  // Fetch customer details (Original data fetching logic)
+  useEffect(() => {
+    const fetcher = async () => {
+      try {
+        const httpReq = http();
+        const { data } = await httpReq.get("/api/customers");
+        const match = data?.data.find(
+          (item) => item.accountNo === userInfo.accountNo
+        );
+        setCustomer(match);
+      } catch (err) {
+        messageApi.error("Unable to fetch customer data!");
+      }
+    };
+    fetcher();
+  }, []); // The empty dependency array means this runs only once on mount
+
+  if (!customer) return <div>Loading...</div>;
 
   return (
     <Customerlayout>
