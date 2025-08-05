@@ -4,7 +4,7 @@ import { useState } from "react";
 import { http, trimData } from "../../../modules/modules";
 
 const NewTransaction = () => {
-  const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
   const [transactionForm] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
