@@ -33,6 +33,7 @@ const App = () => {
   return (
     <AppProvider>
       <BrowserRouter>
+        <GlobalLoader />
         <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/" element={<Homepage />} />
