@@ -30,7 +30,7 @@ const Guard = ({ endpoint, role }) => {
         const user = data?.userType || data?.data?.userType;
 
         // Save user data consistently in localStorage
-        localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
+        // localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
 
         setUserType(user);
          console.log(userType);
