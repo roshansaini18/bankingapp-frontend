@@ -2,73 +2,74 @@ import { useState, useEffect } from "react";
 import Cookies from "universal-cookie";
 import { http } from "../../modules/modules";
 import { Navigate, Outlet } from "react-router-dom";
-import { useLoader } from "../Layout/Theme/ThemeContext"; // 1. Import the global loader hook
+import { useLoader } from "./Layout/Theme/ThemeContext";
 
 const Guard = ({ endpoint, role }) => {
     const cookies = new Cookies();
     const token = cookies.get("authToken");
-    
-    // 2. Use the global loader instead of local state
     const { showLoader, hideLoader } = useLoader();
-
-    // 3. Use a single state to manage the verification status. This is the key fix.
     const [verificationStatus, setVerificationStatus] = useState("verifying");
 
     useEffect(() => {
         const verifyToken = async () => {
-            // No need to show loader here, the parent will do it before this component even mounts if needed
-            
             if (!token) {
                 setVerificationStatus("unauthorised");
-                return; // Exit early
+                // Clear any stale user info if no token exists
+                localStorage.removeItem("userInfo"); 
+                return;
             }
 
             try {
-                // The global loader is already shown by the time this runs.
                 const httpReq = http(token);
                 const { data } = await httpReq.get(endpoint);
+                const userPayload = data?.data || data;
 
-                // Handle possible API response formats
-                const user = data?.userType || data?.data?.userType;
+                // --- THIS IS THE KEY FIX ---
+                // 1. Save user info as soon as the token is verified as valid.
+                localStorage.setItem("userInfo", JSON.stringify(userPayload));
 
-                // For debugging, log the variable directly, not the state.
-                console.log("User Type from API:", user);
+                const userRole = userPayload?.userType;
+                
+                // 2. Add detailed console logs for easier debugging
+                console.log("GUARD: Verification successful.");
+                console.log("GUARD: Role from API is:", `"${userRole}"`);
+                console.log("GUARD: Required role for this route is:", `"${role}"`);
 
-                // 4. Perform the role check *inside* the useEffect, where we have the fresh data.
-                if (user === role) {
+                // 3. Now, separately check for route authorization.
+                if (userRole === role) {
+                    console.log("GUARD: Role match SUCCESS. Authorizing access.");
                     setVerificationStatus("authorised");
-                    // Save user data only on successful authorization and role match
-                    localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
                 } else {
-                    // Role mismatch
+                    console.log("GUARD: Role match FAILED. Redirecting.");
                     setVerificationStatus("unauthorised");
                 }
+
             } catch (err) {
-                console.error("Token verification failed:", err);
+                console.error("GUARD: Token verification API call failed.", err);
+                // If the token is invalid, remove it and the stale user info
+                cookies.remove("authToken", { path: '/' });
+                localStorage.removeItem("userInfo");
                 setVerificationStatus("unauthorised");
             }
         };
-        
-        // Wrap the async function in a self-invoking function to handle showing/hiding loader
+
         (async () => {
             showLoader();
             await verifyToken();
             hideLoader();
         })();
 
-    }, [endpoint, role, token, showLoader, hideLoader]); // Add all dependencies
+    }, [endpoint, role, token, showLoader, hideLoader]);
 
-    // 5. The return logic is now much simpler and free of race conditions.
     if (verificationStatus === "verifying") {
-        // The GlobalLoader is displaying, so we render nothing here.
-        return null;
+        return null; // The GlobalLoader is handling the UI
     }
 
     if (verificationStatus === "authorised") {
-        return <Outlet />;
+        return <Outlet />; // Success: Render the dashboard or other protected content
     }
     
-    // This catches all other cases ('unauthorised', etc.)
+    // Any other status leads to a redirect
     return <Navigate to="/" />;
 };
 
