@@ -28,16 +28,26 @@ const Transfer = () => {
     setCurrentStep(1);
   };
 
-  // Step 2: User confirms and enters password
+ // Step 2: User confirms and enters password
   const handleStep2Finish = async (values) => {
     const finalPayload = { ...transferDetails, ...values };
+
+    // --- DEBUG LOG 1 ---
+    console.log("Submitting to /api/transfers with this payload:", finalPayload);
+
     try {
       setLoading(true);
       messageApi.loading('Processing transfer...');
       const httpReq = http();
       await httpReq.post('/api/transfers', finalPayload);
       messageApi.success('Transfer successful!');
+
+      // --- DEBUG LOG 2 ---
+      // Let's see what transferDetails looks like right before we show the success screen.
+      console.log("API call successful. Current transferDetails state:", transferDetails);
+      
       setCurrentStep(2); // Move to success step
+
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Transfer failed.';
       messageApi.error(errorMessage);
@@ -51,6 +61,8 @@ const Transfer = () => {
       setCurrentStep(0);
       setTransferDetails(null);
   }
+
+   console.log("Component is rendering with state:", { currentStep, transferDetails });
 
   return (
     <Customerlayout>
