@@ -40,17 +40,21 @@ const CustomerTransactions = () => {
   const lightBlue = "#e6f0fa";
   const accent = "#0075c9";
 
-  let finalBalance = 0;
+  const finalBalance = transactions.reduce((currentBalance, transaction) => {
+  // Make sure the transaction amount is a valid number
+  const amount = Number(transaction.transactionAmount) || 0;
 
-  if (transactions.length > 0) {
-    const lastTransaction = transactions[transactions.length - 1];
-
-    if (lastTransaction.transactionType === "cr") {
-      finalBalance+=lastTransaction.transactionAmount;
-    } else if (lastTransaction.transactionType === "dr") {
-      finalBalance-=lastTransaction.transactionAmount;
-    } 
+  if (transaction.transactionType === "cr") {
+    // If it's a credit, add the amount to the running total
+    return currentBalance + amount;
+  } else if (transaction.transactionType === "dr") {
+    // If it's a debit, subtract the amount
+    return currentBalance - amount;
   }
+  
+  // If the transaction type is unknown, just return the current balance
+  return currentBalance;
+}, 0); // The '0' at the end is the starting balance.
 
   const columns = [
     {
