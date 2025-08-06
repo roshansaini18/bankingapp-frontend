@@ -119,7 +119,7 @@ const Transfer = () => {
                     <Button type="primary" key="new" onClick={resetFlow}>
                         Make Another Transfer
                     </Button>,
-                    <Button key="dashboard" onClick={() => navigate('/customer/dashboard')}>
+                    <Button key="dashboard" onClick={() => navigate('/customer')}>
                         Go to Dashboard
                     </Button>,
                 ]}
