@@ -2,8 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Loader from "../components/Loader";
 import Guard from "../components/Gaurd";
-import { AppProvider } from "../components/Layout/Theme/ThemeContext";
-import GlobalLoader from "../components/GlobalLoader";
+import { ThemeProvider } from "../components/Layout/Theme/ThemeContext";
 
 // Lazy loaded components
 const Homepage = lazy(() => import("../components/Home"));
@@ -31,9 +30,8 @@ const ManageCard  = lazy(() => import("../components/Customer/ManageCard"));
 
 const App = () => {
   return (
-    <AppProvider>
+    <ThemeProvider>
       <BrowserRouter>
-        <GlobalLoader />
         <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/" element={<Homepage />} />
@@ -86,7 +84,7 @@ const App = () => {
           </Routes>
         </Suspense>
       </BrowserRouter>
-    </AppProvider>
+    </ThemeProvider>
   );
 };
 
