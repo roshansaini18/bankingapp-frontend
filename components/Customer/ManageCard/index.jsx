@@ -4,7 +4,7 @@ import { CreditCardOutlined, EyeInvisibleOutlined, EyeOutlined, LockOutlined, Un
 import useSWR, { mutate } from 'swr';
 import { fetchData, http } from '../../../modules/modules';
 import Customerlayout from '../../Layout/Customerlayout';
-import './ManageCard.css'; // We will create this CSS file next
+import './index.css'; // We will create this CSS file next
 
 const { Title, Text } = Typography;
 
