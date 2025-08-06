@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Cookies from "universal-cookie";
 import { http } from "../../modules/modules";
 import { Navigate, Outlet } from "react-router-dom";
-import { useLoader } from "./Layout/Theme/ThemeContext";
+import { useLoader } from "../Layout/Theme/ThemeContext";
 
 const Guard = ({ endpoint, role }) => {
     const cookies = new Cookies();
