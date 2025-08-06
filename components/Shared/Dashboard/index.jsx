@@ -1,128 +1,130 @@
-import { Card, Button, Divider } from "antd";
+import { Card, Divider, Skeleton } from "antd";
+import { Bar, Doughnut } from 'react-chartjs-2';
 import {
-    DownloadOutlined,
-    ManOutlined,
-    UploadOutlined,
-    BookOutlined,
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    ArcElement,
+} from 'chart.js';
+import {
     BarChartOutlined,
     PlusOutlined,
     MinusOutlined,
-    DollarOutlined
+    DollarOutlined,
 } from "@ant-design/icons";
-const Dashboard = ({data}) => {
-    return (
-        <div>
+
+// Register the components Chart.js needs to draw the charts
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    ArcElement,
+    Title,
+    Tooltip,
+    Legend
+);
+
+const Dashboard = ({ summary }) => {
+    // If the summary data hasn't loaded yet, show a placeholder
+    if (!summary) {
+        return (
             <div className="grid md:grid-cols-4 gap-6">
-                <Card className="shadow">
-                    <div className="flex justify-around items-center">
-                        <div className="flex items-center flex-col gap-y-2">
-                            <Button
-                                type="primary"
-                                icon={<BarChartOutlined />}s
-                                size="large"
-                                shape="circle"
-                                className="bg-rose-600"
-                            />
-                            <h1 className="text-xl font-semibold text-rose-600">
-                                Transactions
-                            </h1>
-                        </div>
-                        <Divider type="vertical" className="h-24" />
-                        <div>
-                            <h1 className="text-3xl font-bold text-rose-400">
-                                {data?.data.totalTransactions}T
-                            </h1>
-                            <p className="text-lg mt-1 text-zinc-400">
-                                {Math.floor(
-                                    ((data?.data.totalTransactions)+(data?.data.totalTransactions*50)/100)
-                                )}
-                            </p>
-                        </div>
-                    </div>
+                <Skeleton active paragraph={{ rows: 2 }} />
+                <Skeleton active paragraph={{ rows: 2 }} />
+                <Skeleton active paragraph={{ rows: 2 }} />
+                <Skeleton active paragraph={{ rows: 2 }} />
+            </div>
+        );
+    }
+
+    // --- Chart Data and Options ---
+
+    // Data for the Bar Chart (Credit vs Debit Amount)
+    const barChartData = {
+        labels: ['Transactions'],
+        datasets: [
+            {
+                label: 'Total Credit (₹)',
+                data: [summary.totalCredit],
+                backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                borderColor: 'rgba(34, 197, 94, 1)',
+                borderWidth: 1,
+            },
+            {
+                label: 'Total Debit (₹)',
+                data: [summary.totalDebit],
+                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 1,
+            },
+        ],
+    };
+
+    // Data for the Doughnut Chart (Transaction Counts)
+    const doughnutChartData = {
+        labels: ['Credit Transactions', 'Debit Transactions'],
+        datasets: [
+            {
+                label: 'Transaction Count',
+                data: [summary.creditCount, summary.debitCount],
+                backgroundColor: [
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(239, 68, 68, 0.8)',
+                ],
+                borderColor: [
+                    'rgba(255, 255, 255, 1)',
+                    'rgba(255, 255, 255, 1)',
+                ],
+                borderWidth: 2,
+            },
+        ],
+    };
+
+    return (
+        <div className="flex flex-col gap-6">
+            {/* --- Top Statistic Cards --- */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                <Card className="shadow text-center">
+                    <BarChartOutlined className="text-3xl text-rose-500 mb-2" />
+                    <h3 className="text-lg font-semibold text-gray-600">Total Transactions</h3>
+                    <p className="text-2xl font-bold">{summary.totalTransactions}</p>
                 </Card>
-                <Card className="shadow">
-                    <div className="flex justify-around items-center">
-                        <div className="flex items-center flex-col gap-y-2">
-                            <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                size="large"
-                                shape="circle"
-                                className="bg-green-600"
-                            />
-                            <h1 className="text-xl font-semibold text-green-600">
-                                Credits
-                            </h1>
-                        </div>
-                        <Divider type="vertical" className="h-24" />
-                        <div>
-                            <h1 className="text-3xl font-bold text-rose-400">
-                                {data?.data.totalCredit}T
-                            </h1>
-                            <p className="text-lg mt-1 text-zinc-400">
-                                {Math.floor(
-                                    ((data?.data.totalCredit)+(data?.data.totalCredit*50)/100)
-                                )}
-                            </p>
-                        </div>
-                    </div>
+                <Card className="shadow text-center">
+                    <PlusOutlined className="text-3xl text-green-500 mb-2" />
+                    <h3 className="text-lg font-semibold text-gray-600">Total Credit</h3>
+                    <p className="text-2xl font-bold">₹{summary.totalCredit.toLocaleString()}</p>
                 </Card>
-                <Card className="shadow">
-                    <div className="flex justify-around items-center">
-                        <div className="flex items-center flex-col gap-y-2">
-                            <Button
-                                type="primary"
-                                icon={<MinusOutlined />}
-                                size="large"
-                                shape="circle"
-                                className="bg-orange-600"
-                            />
-                            <h1 className="text-xl font-semibold text-orange-600">
-                                Debits
-                            </h1>
-                        </div>
-                        <Divider type="vertical" className="h-24" />
-                        <div>
-                           <h1 className="text-3xl font-bold text-rose-400">
-                                {data?.data.totalDebit}T
-                            </h1>
-                            <p className="text-lg mt-1 text-zinc-400">
-                                {Math.floor(
-                                    ((data?.data.totalDebit)+(data?.data.totalDebit*50)/100)
-                                )}
-                            </p>
-                        </div>
-                    </div>
+                <Card className="shadow text-center">
+                    <MinusOutlined className="text-3xl text-red-500 mb-2" />
+                    <h3 className="text-lg font-semibold text-gray-600">Total Debit</h3>
+                    <p className="text-2xl font-bold">₹{summary.totalDebit.toLocaleString()}</p>
                 </Card>
+                <Card className="shadow text-center">
+                    <DollarOutlined className="text-3xl text-blue-500 mb-2" />
+                    <h3 className="text-lg font-semibold text-gray-600">Final Balance</h3>
+                    <p className="text-2xl font-bold">₹{summary.balance.toLocaleString()}</p>
+                </Card>
+            </div>
+
+            {/* --- Charts --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="shadow">
-                    <div className="flex justify-around items-center">
-                        <div className="flex items-center flex-col gap-y-2">
-                            <Button
-                                type="primary"
-                                icon={<DollarOutlined />}
-                                size="large"
-                                shape="circle"
-                                className="bg-blue-600"
-                            />
-                            <h1 className="text-xl font-semibold text-blue-600">
-                                Balance
-                            </h1>
-                        </div>
-                        <Divider type="vertical" className="h-24" />
-                        <div>
-                            <h1 className="text-3xl font-bold text-rose-400">
-                                {data?.data.balance}T
-                            </h1>
-                            <p className="text-lg mt-1 text-zinc-400">
-                                {Math.floor(
-                                    ((data?.data.balance)+(data?.data.balance*50)/100)
-                                )}
-                            </p>
-                        </div>
+                    <h3 className="text-lg font-semibold mb-4">Credit vs. Debit Amount</h3>
+                    <Bar data={barChartData} options={{ responsive: true }} />
+                </Card>
+                <Card className="shadow flex flex-col items-center">
+                    <h3 className="text-lg font-semibold mb-4">Transaction Type Breakdown</h3>
+                    <div style={{ maxWidth: '250px', margin: '0 auto' }}>
+                        <Doughnut data={doughnutChartData} options={{ responsive: true }} />
                     </div>
                 </Card>
             </div>
         </div>
     )
 }
+
 export default Dashboard;
