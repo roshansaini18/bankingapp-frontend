@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 const { Title, Text } = Typography;
 
 const Transfer = () => {
-  // FIX: Create a separate form instance for each step
   const [step1Form] = Form.useForm();
   const [step2Form] = Form.useForm();
 
@@ -19,14 +18,12 @@ const Transfer = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
 
-  // Fetch beneficiaries to populate the dropdown
   const { data: beneficiariesData, isLoading: beneficiariesLoading } = useSWR('/api/beneficiaries', fetchData);
   const beneficiaries = beneficiariesData?.data.map(b => ({
     label: `${b.payeeName} (${b.accountNo})`,
     value: b._id,
   })) || [];
 
-  // Step 1: User selects payee and amount
   const handleStep1Finish = (values) => {
     const selectedBeneficiary = beneficiariesData?.data.find(b => b._id === values.beneficiaryId);
     if (selectedBeneficiary) {
@@ -37,8 +34,9 @@ const Transfer = () => {
     }
   };
 
-  // Step 2: User confirms and enters password
   const handleStep2Finish = async (values) => {
+    // This is our original logic, it should run after manual validation
+    console.log("Step B: handleStep2Finish function is now running.");
     const finalPayload = { ...transferDetails, ...values };
     try {
       setLoading(true);
@@ -46,7 +44,7 @@ const Transfer = () => {
       const httpReq = http();
       await httpReq.post('/api/transfers', finalPayload);
       messageApi.success('Transfer successful!');
-      setCurrentStep(2); // Move to success step
+      setCurrentStep(2);
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Transfer failed.';
       messageApi.error(errorMessage);
@@ -55,7 +53,24 @@ const Transfer = () => {
     }
   };
   
-  // FIX: The reset function now resets both forms
+  // FIX: Create a new function to manually trigger the transfer
+  const triggerTransfer = async () => {
+    console.log("Step A: 'Confirm & Transfer' button clicked. Manually starting validation.");
+    try {
+      // 1. Manually validate the fields of the second form
+      const values = await step2Form.validateFields();
+      console.log("Manual validation successful. Form values:", values);
+      
+      // 2. If validation succeeds, call our original handler function
+      await handleStep2Finish(values);
+
+    } catch (errorInfo) {
+      // This will catch any validation errors (e.g., empty password)
+      console.log("Manual validation failed:", errorInfo);
+      messageApi.error("Please check the form for errors.");
+    }
+  };
+  
   const resetFlow = () => {
       step1Form.resetFields();
       step2Form.resetFields();
@@ -76,16 +91,10 @@ const Transfer = () => {
           </Steps>
 
           {currentStep === 0 && (
-            // FIX: This form now uses its own instance: step1Form
             <Form form={step1Form} layout="vertical" onFinish={handleStep1Finish}>
+              {/* This form remains the same */}
               <Form.Item name="beneficiaryId" label="Select Payee" rules={[{ required: true }]}>
-                <Select
-                  showSearch
-                  placeholder="Select a payee"
-                  options={beneficiaries}
-                  loading={beneficiariesLoading}
-                  optionFilterProp="label"
-                />
+                <Select showSearch placeholder="Select a payee" options={beneficiaries} loading={beneficiariesLoading} optionFilterProp="label" />
               </Form.Item>
               <Form.Item name="amount" label="Amount" rules={[{ required: true, pattern: /^[1-9]\d*$/, message: "Please enter a valid amount." }]}>
                 <Input type="number" min="1" prefix="₹" />
@@ -104,14 +113,15 @@ const Transfer = () => {
               <p>Amount: <Text strong>₹{Number(transferDetails.amount).toLocaleString()}</Text></p>
               <p>Reference: <Text>{transferDetails.reference || 'N/A'}</Text></p>
               <Divider />
-              {/* FIX: This form now uses its own instance: step2Form */}
-              <Form form={step2Form} layout="vertical" onFinish={handleStep2Finish}>
+              {/* FIX: We removed onFinish from the form tag */}
+              <Form form={step2Form} layout="vertical">
                 <Form.Item name="password" label="Enter Your Password to Confirm" rules={[{ required: true, message: "Password is required to confirm." }]}>
                   <Input.Password prefix={<LockOutlined />} />
                 </Form.Item>
                 <div className='flex gap-2'>
                     <Button block onClick={() => setCurrentStep(0)}>Back</Button>
-                    <Button type="primary" htmlType="submit" loading={loading} block icon={<BankOutlined />}>Confirm & Transfer</Button>
+                    {/* FIX: The button is now a standard button that calls our new trigger function */}
+                    <Button type="primary" htmlType="button" onClick={triggerTransfer} loading={loading} block icon={<BankOutlined />}>Confirm & Transfer</Button>
                 </div>
               </Form>
             </div>
@@ -123,12 +133,8 @@ const Transfer = () => {
                 title="Transfer Successful!"
                 subTitle={`You have successfully sent ₹${Number(transferDetails.amount).toLocaleString()} to ${transferDetails.payeeName}.`}
                 extra={[
-                    <Button type="primary" key="new" onClick={resetFlow}>
-                        Make Another Transfer
-                    </Button>,
-                    <Button key="dashboard" onClick={() => navigate('/customer/dashboard')}>
-                        Go to Dashboard
-                    </Button>,
+                    <Button type="primary" key="new" onClick={resetFlow}>Make Another Transfer</Button>,
+                    <Button key="dashboard" onClick={() => navigate('/customer/dashboard')}>Go to Dashboard</Button>,
                 ]}
               />
           )}
