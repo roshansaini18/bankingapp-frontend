@@ -4,15 +4,20 @@ import { ArrowRightOutlined, BankOutlined, LockOutlined, UserOutlined } from '@a
 import useSWR from 'swr';
 import { fetchData, http } from '../../../modules/modules';
 import Customerlayout from '../../Layout/Customerlayout';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
 const Transfer = () => {
-  const [form] = Form.useForm();
+  // FIX: Create a separate form instance for each step
+  const [step1Form] = Form.useForm();
+  const [step2Form] = Form.useForm();
+
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [transferDetails, setTransferDetails] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const navigate = useNavigate();
 
   // Fetch beneficiaries to populate the dropdown
   const { data: beneficiariesData, isLoading: beneficiariesLoading } = useSWR('/api/beneficiaries', fetchData);
@@ -24,30 +29,24 @@ const Transfer = () => {
   // Step 1: User selects payee and amount
   const handleStep1Finish = (values) => {
     const selectedBeneficiary = beneficiariesData?.data.find(b => b._id === values.beneficiaryId);
-    setTransferDetails({ ...values, payeeName: selectedBeneficiary.payeeName });
-    setCurrentStep(1);
+    if (selectedBeneficiary) {
+        setTransferDetails({ ...values, payeeName: selectedBeneficiary.payeeName });
+        setCurrentStep(1);
+    } else {
+        messageApi.error("Could not find beneficiary details. Please try again.");
+    }
   };
 
- // Step 2: User confirms and enters password
+  // Step 2: User confirms and enters password
   const handleStep2Finish = async (values) => {
     const finalPayload = { ...transferDetails, ...values };
-
-    // --- DEBUG LOG 1 ---
-    console.log("Submitting to /api/transfers with this payload:", finalPayload);
-
     try {
       setLoading(true);
       messageApi.loading('Processing transfer...');
       const httpReq = http();
       await httpReq.post('/api/transfers', finalPayload);
       messageApi.success('Transfer successful!');
-
-      // --- DEBUG LOG 2 ---
-      // Let's see what transferDetails looks like right before we show the success screen.
-      console.log("API call successful. Current transferDetails state:", transferDetails);
-      
       setCurrentStep(2); // Move to success step
-
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Transfer failed.';
       messageApi.error(errorMessage);
@@ -56,13 +55,13 @@ const Transfer = () => {
     }
   };
   
+  // FIX: The reset function now resets both forms
   const resetFlow = () => {
-      form.resetFields();
+      step1Form.resetFields();
+      step2Form.resetFields();
       setCurrentStep(0);
       setTransferDetails(null);
   }
-
-   console.log("Component is rendering with state:", { currentStep, transferDetails });
 
   return (
     <Customerlayout>
@@ -77,17 +76,18 @@ const Transfer = () => {
           </Steps>
 
           {currentStep === 0 && (
-            <Form form={form} layout="vertical" onFinish={handleStep1Finish}>
+            // FIX: This form now uses its own instance: step1Form
+            <Form form={step1Form} layout="vertical" onFinish={handleStep1Finish}>
               <Form.Item name="beneficiaryId" label="Select Payee" rules={[{ required: true }]}>
                 <Select
                   showSearch
                   placeholder="Select a payee"
                   options={beneficiaries}
                   loading={beneficiariesLoading}
-                  prefix={<UserOutlined />}
+                  optionFilterProp="label"
                 />
               </Form.Item>
-              <Form.Item name="amount" label="Amount" rules={[{ required: true }]}>
+              <Form.Item name="amount" label="Amount" rules={[{ required: true, pattern: /^[1-9]\d*$/, message: "Please enter a valid amount." }]}>
                 <Input type="number" min="1" prefix="₹" />
               </Form.Item>
               <Form.Item name="reference" label="Reference (Optional)">
@@ -97,15 +97,16 @@ const Transfer = () => {
             </Form>
           )}
           
-          {currentStep === 1 && (
+          {currentStep === 1 && transferDetails && (
             <div>
               <Title level={5}>Confirm Transfer Details</Title>
               <p>To: <Text strong>{transferDetails.payeeName}</Text></p>
               <p>Amount: <Text strong>₹{Number(transferDetails.amount).toLocaleString()}</Text></p>
               <p>Reference: <Text>{transferDetails.reference || 'N/A'}</Text></p>
               <Divider />
-              <Form form={form} layout="vertical" onFinish={handleStep2Finish}>
-                <Form.Item name="password" label="Enter Your Password to Confirm" rules={[{ required: true }]}>
+              {/* FIX: This form now uses its own instance: step2Form */}
+              <Form form={step2Form} layout="vertical" onFinish={handleStep2Finish}>
+                <Form.Item name="password" label="Enter Your Password to Confirm" rules={[{ required: true, message: "Password is required to confirm." }]}>
                   <Input.Password prefix={<LockOutlined />} />
                 </Form.Item>
                 <div className='flex gap-2'>
@@ -116,7 +117,7 @@ const Transfer = () => {
             </div>
           )}
 
-          {currentStep === 2 && (
+          {currentStep === 2 && transferDetails && (
               <Result
                 status="success"
                 title="Transfer Successful!"
