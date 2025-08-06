@@ -9,6 +9,7 @@ import {
   BulbOutlined,
   BulbFilled,
   UsergroupAddOutlined,
+  BankOutlined ,
 } from '@ant-design/icons';
 import {
   Layout,
@@ -81,6 +82,11 @@ const Customerlayout = ({ children }) => {
       label: <Link to="/customer/payees">Payees</Link>,
     },
     {
+      key: '/customer/transfer',
+      icon: <BankOutlined   />,
+      label: <Link to="/customer/transfer">Fund Transfer</Link>,
+    },
+    {
       key: '/customer/profile',
       icon: <UserOutlined />,
       label: <Link to="/customer/profile">Profile</Link>,
@@ -122,6 +128,7 @@ const Customerlayout = ({ children }) => {
     '/customer/transaction': 'Transactions',
     '/customer/profile': 'Profile',
     '/customer/payees': 'Payees',
+    '/customer/transfer': 'Fund Transfer',
   };
 
   const pathSnippets = pathname.split('/').filter((i) => i);
