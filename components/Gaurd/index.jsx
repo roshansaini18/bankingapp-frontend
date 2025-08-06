@@ -1,127 +1,75 @@
-// import { useState, useEffect } from "react";
-// import Cookies from "universal-cookie";
-// import { http } from "../../modules/modules";
-// import { Navigate, Outlet } from "react-router-dom";
-// import Loader from "../Loader";
-
-// const Guard = ({ endpoint, role }) => {
-//   const cookies = new Cookies();
-//   const token = cookies.get("authToken");
-
-//   const [authorised, setAuthorised] = useState(false);
-//   const [userType, setUserType] = useState(null);
-//   const [loader, setLoader] = useState(true); // explicitly track loading
-
-//   useEffect(() => {
-//     const verifyToken = async () => {
-//       if (!token) {
-//         setAuthorised(false);
-//         setLoader(false);
-//         return;
-//       }
-//       try {
-//         const httpReq = http(token);
-//         const { data } = await httpReq.get(endpoint);
-//         const user = data?.data?.userType;
-//         sessionStorage.setItem("userInfo", JSON.stringify(data?.data));
-//         setUserType(user);
-//         setAuthorised(true);
-//       } catch (err) {
-//         setUserType(null);
-//         setAuthorised(false);
-//       } finally {
-//         setLoader(false); // stop loading in all cases
-//       }
-//     };
-
-//     verifyToken();
-//   }, [endpoint, token]);
-
-//   if (!token) return <Navigate to="/" />;
-//   if (loader) return <Loader />;
-//   if (!authorised) return <Navigate to="/" />;
-//   if (authorised && userType === role) return <Outlet />;
-
-//   return <Navigate to="/" />;
-// };
-
-// export default Guard;
-
-
-// Guard.js (Corrected)
-
 import { useState, useEffect } from "react";
 import Cookies from "universal-cookie";
 import { http } from "../../modules/modules";
 import { Navigate, Outlet } from "react-router-dom";
-import Loader from "../Loader";
+import { useLoader } from "../Layout/Theme/ThemeContext"; // 1. Import the global loader hook
 
 const Guard = ({ endpoint, role }) => {
-  const cookies = new Cookies();
-  const token = cookies.get("authToken");
+    const cookies = new Cookies();
+    const token = cookies.get("authToken");
+    
+    // 2. Use the global loader instead of local state
+    const { showLoader, hideLoader } = useLoader();
 
-  // No need for userType state here, it was causing the race condition
-  const [authorised, setAuthorised] = useState(null); // Use null to represent the initial pending state
-  const [loader, setLoader] = useState(true);
+    // 3. Use a single state to manage the verification status. This is the key fix.
+    const [verificationStatus, setVerificationStatus] = useState("verifying");
 
-// In Guard.js
+    useEffect(() => {
+        const verifyToken = async () => {
+            // No need to show loader here, the parent will do it before this component even mounts if needed
+            
+            if (!token) {
+                setVerificationStatus("unauthorised");
+                return; // Exit early
+            }
 
-useEffect(() => {
-  const verifyToken = async () => {
-    console.log("--- Guard Verification Started ---");
-    console.log("1. Token from cookies:", token);
-    console.log("2. Role prop being checked for:", role);
-    console.log("3. Verification endpoint:", endpoint);
+            try {
+                // The global loader is already shown by the time this runs.
+                const httpReq = http(token);
+                const { data } = await httpReq.get(endpoint);
 
-    if (!token) {
-      console.log("Verification failed: No token found in cookies.");
-      setAuthorised(false);
-      setLoader(false);
-      return;
+                // Handle possible API response formats
+                const user = data?.userType || data?.data?.userType;
+
+                // For debugging, log the variable directly, not the state.
+                console.log("User Type from API:", user);
+
+                // 4. Perform the role check *inside* the useEffect, where we have the fresh data.
+                if (user === role) {
+                    setVerificationStatus("authorised");
+                    // Save user data only on successful authorization and role match
+                    localStorage.setItem("userInfo", JSON.stringify(data?.data || data));
+                } else {
+                    // Role mismatch
+                    setVerificationStatus("unauthorised");
+                }
+            } catch (err) {
+                console.error("Token verification failed:", err);
+                setVerificationStatus("unauthorised");
+            }
+        };
+        
+        // Wrap the async function in a self-invoking function to handle showing/hiding loader
+        (async () => {
+            showLoader();
+            await verifyToken();
+            hideLoader();
+        })();
+
+    }, [endpoint, role, token, showLoader, hideLoader]); // Add all dependencies
+
+    // 5. The return logic is now much simpler and free of race conditions.
+    if (verificationStatus === "verifying") {
+        // The GlobalLoader is displaying, so we render nothing here.
+        return null;
     }
 
-    try {
-      const httpReq = http(token);
-      const { data } = await httpReq.get(endpoint);
-      console.log("4. SUCCESS: API call succeeded. Full response data from server:", data);
-
-      const apiUserType = data?.userType || data?.data?.userType;
-      console.log("5. Extracted user type from API response:", apiUserType);
-
-      if (apiUserType === role) {
-        console.log("6. ✅ SUCCESS: Role matches. User is authorized.");
-        setAuthorised(true);
-      } else {
-        console.error("7. ❌ FAILURE: Role mismatch.");
-        console.error(`   > API returned role: '${apiUserType}'`);
-        console.error(`   > Required role: '${role}'`);
-        setAuthorised(false);
-      }
-    } catch (err) {
-      console.error("7. ❌ FAILURE: The API call threw an error.", err);
-      if (err.response) {
-        // This is for errors returned by the server (e.g., 401, 403, 500)
-        console.error("   > Server responded with status:", err.response.status);
-        console.error("   > Server error message:", err.response.data);
-      }
-      setAuthorised(false);
-      cookies.remove("authToken", { path: "/" });
-    } finally {
-      console.log("--- Guard Verification Finished ---");
-      setLoader(false);
+    if (verificationStatus === "authorised") {
+        return <Outlet />;
     }
-  };
-
-  verifyToken();
-}, [token, endpoint, role]);
-
-  // Show loader while verification is in progress
-  if (loader || authorised === null) {
-    return <Loader />;
-  }
-
-  // If authorised, show the child component. Otherwise, redirect to the home page.
-  return authorised ? <Outlet /> : <Navigate to="/" />;
+    
+    // This catches all other cases ('unauthorised', etc.)
+    return <Navigate to="/" />;
 };
 
 export default Guard;
