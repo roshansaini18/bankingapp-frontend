@@ -25,7 +25,7 @@ const Profile = lazy(() => import("../components/Customer/Profile"));
 
 const ForgotPassword = lazy(() => import("../components/ForgotPassword")); 
 const Payees  = lazy(() => import("../components/Customer/Payees"));
-
+const Transfer  = lazy(() => import("../components/Customer/Transfer"));
 
 
 const App = () => {
@@ -70,6 +70,7 @@ const App = () => {
               <Route index element={<CustomerDashboard />} />
               <Route path="transaction" element={<CustomerTransactions />} />
                <Route path="payees" element={<Payees  />} />
+               <Route path="transfer" element={<Transfer   />} />
               <Route path="profile" element={<Profile />} />
               <Route path="*" element={<PageNotFound />} />
             </Route>
