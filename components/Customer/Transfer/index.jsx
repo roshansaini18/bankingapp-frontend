@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button, Card, Form, Input, message, Select, Steps, Typography, Result } from 'antd';
 import { ArrowRightOutlined, BankOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import useSWR from 'swr';
-import { fetchData, http } from '../../../modules/modules';
+import { fetchData } from '../../../modules/modules';
 import Customerlayout from '../../Layout/Customerlayout';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,41 +34,11 @@ const Transfer = () => {
     }
   };
 
-  const handleStep2Finish = async (values) => {
-    // This is our original logic, it should run after manual validation
-    console.log("Step B: handleStep2Finish function is now running.");
-    const finalPayload = { ...transferDetails, ...values };
-    try {
-      setLoading(true);
-      messageApi.loading('Processing transfer...');
-      const httpReq = http();
-      await httpReq.post('/api/transfers', finalPayload);
-      messageApi.success('Transfer successful!');
-      setCurrentStep(2);
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Transfer failed.';
-      messageApi.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // FIX: Create a new function to manually trigger the transfer
-  const triggerTransfer = async () => {
-    console.log("Step A: 'Confirm & Transfer' button clicked. Manually starting validation.");
-    try {
-      // 1. Manually validate the fields of the second form
-      const values = await step2Form.validateFields();
-      console.log("Manual validation successful. Form values:", values);
-      
-      // 2. If validation succeeds, call our original handler function
-      await handleStep2Finish(values);
-
-    } catch (errorInfo) {
-      // This will catch any validation errors (e.g., empty password)
-      console.log("Manual validation failed:", errorInfo);
-      messageApi.error("Please check the form for errors.");
-    }
+  // FIX: This function is now extremely simple for our test.
+  const triggerTransfer = () => {
+    // This is the ONLY thing this function will do.
+    console.log("--- CONFIRM & TRANSFER BUTTON CLICKED ---");
+    messageApi.info("Button click was successfully registered!");
   };
   
   const resetFlow = () => {
@@ -92,7 +62,6 @@ const Transfer = () => {
 
           {currentStep === 0 && (
             <Form form={step1Form} layout="vertical" onFinish={handleStep1Finish}>
-              {/* This form remains the same */}
               <Form.Item name="beneficiaryId" label="Select Payee" rules={[{ required: true }]}>
                 <Select showSearch placeholder="Select a payee" options={beneficiaries} loading={beneficiariesLoading} optionFilterProp="label" />
               </Form.Item>
@@ -113,14 +82,12 @@ const Transfer = () => {
               <p>Amount: <Text strong>₹{Number(transferDetails.amount).toLocaleString()}</Text></p>
               <p>Reference: <Text>{transferDetails.reference || 'N/A'}</Text></p>
               <Divider />
-              {/* FIX: We removed onFinish from the form tag */}
               <Form form={step2Form} layout="vertical">
                 <Form.Item name="password" label="Enter Your Password to Confirm" rules={[{ required: true, message: "Password is required to confirm." }]}>
                   <Input.Password prefix={<LockOutlined />} />
                 </Form.Item>
                 <div className='flex gap-2'>
                     <Button block onClick={() => setCurrentStep(0)}>Back</Button>
-                    {/* FIX: The button is now a standard button that calls our new trigger function */}
                     <Button type="primary" htmlType="button" onClick={triggerTransfer} loading={loading} block icon={<BankOutlined />}>Confirm & Transfer</Button>
                 </div>
               </Form>
@@ -128,15 +95,7 @@ const Transfer = () => {
           )}
 
           {currentStep === 2 && transferDetails && (
-              <Result
-                status="success"
-                title="Transfer Successful!"
-                subTitle={`You have successfully sent ₹${Number(transferDetails.amount).toLocaleString()} to ${transferDetails.payeeName}.`}
-                extra={[
-                    <Button type="primary" key="new" onClick={resetFlow}>Make Another Transfer</Button>,
-                    <Button key="dashboard" onClick={() => navigate('/customer/dashboard')}>Go to Dashboard</Button>,
-                ]}
-              />
+              <Result status="success" title="Transfer Successful!" />
           )}
         </Card>
       </div>
