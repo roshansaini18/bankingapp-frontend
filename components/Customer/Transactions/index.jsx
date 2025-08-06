@@ -46,14 +46,10 @@ const CustomerTransactions = () => {
     const lastTransaction = transactions[transactions.length - 1];
 
     if (lastTransaction.transactionType === "cr") {
-      finalBalance =
-        lastTransaction.currentBalance + lastTransaction.transactionAmount;
+      finalBalance+=lastTransaction.transactionAmount;
     } else if (lastTransaction.transactionType === "dr") {
-      finalBalance =
-        lastTransaction.currentBalance - lastTransaction.transactionAmount;
-    } else {
-      finalBalance = lastTransaction.currentBalance;
-    }
+      finalBalance-=lastTransaction.transactionAmount;
+    } 
   }
 
   const columns = [
