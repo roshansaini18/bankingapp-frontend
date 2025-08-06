@@ -1,4 +1,4 @@
-import { Card, Divider, Skeleton } from "antd";
+import { Card, Skeleton } from "antd";
 import { Bar, Doughnut } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -17,7 +17,7 @@ import {
     DollarOutlined,
 } from "@ant-design/icons";
 
-// Register the components Chart.js needs to draw the charts
+// Register Chart.js components
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -28,9 +28,15 @@ ChartJS.register(
     Legend
 );
 
-const Dashboard = ({ summary }) => {
-    // If the summary data hasn't loaded yet, show a placeholder
-    if (!summary) {
+// --- Canara Bank Theme Colors ---
+const CANARA_BLUE = '#0055A5';
+const ACCENT_YELLOW = '#FFC107';
+const CREDIT_GREEN = '#22c55e'; // A clear green for credit
+const DEBIT_RED = '#ef4444'; // A clear red for debit
+
+const Dashboard = ({ data }) => {
+    // Loading state: shows skeletons if data is not yet available
+    if (!data || !data.data) {
         return (
             <div className="grid md:grid-cols-4 gap-6">
                 <Skeleton active paragraph={{ rows: 2 }} />
@@ -41,47 +47,58 @@ const Dashboard = ({ summary }) => {
         );
     }
 
-    // --- Chart Data and Options ---
+    // Safely destructure data with default values
+    const summary = data.data;
+    const {
+        totalTransactions = 0,
+        totalCredit = 0,
+        totalDebit = 0,
+        balance = 0,
+    } = summary;
 
-    // Data for the Bar Chart (Credit vs Debit Amount)
+    // --- Chart Data with Themed Colors ---
     const barChartData = {
-        labels: ['Transactions'],
+        labels: ['Amount'],
         datasets: [
             {
                 label: 'Total Credit (₹)',
-                data: [summary.totalCredit],
-                backgroundColor: 'rgba(34, 197, 94, 0.6)',
-                borderColor: 'rgba(34, 197, 94, 1)',
+                data: [totalCredit],
+                backgroundColor: 'rgba(34, 197, 94, 0.7)', // Green
+                borderColor: CREDIT_GREEN,
                 borderWidth: 1,
             },
             {
                 label: 'Total Debit (₹)',
-                data: [summary.totalDebit],
-                backgroundColor: 'rgba(239, 68, 68, 0.6)',
-                borderColor: 'rgba(239, 68, 68, 1)',
+                data: [totalDebit],
+                backgroundColor: 'rgba(239, 68, 68, 0.7)', // Red
+                borderColor: DEBIT_RED,
                 borderWidth: 1,
             },
         ],
     };
 
-    // Data for the Doughnut Chart (Transaction Counts)
     const doughnutChartData = {
-        labels: ['Credit Transactions', 'Debit Transactions'],
+        labels: ['Total Credit', 'Total Debit'],
         datasets: [
             {
-                label: 'Transaction Count',
-                data: [summary.creditCount, summary.debitCount],
-                backgroundColor: [
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(239, 68, 68, 0.8)',
-                ],
-                borderColor: [
-                    'rgba(255, 255, 255, 1)',
-                    'rgba(255, 255, 255, 1)',
-                ],
+                label: 'Amount (₹)',
+                data: [totalCredit, totalDebit],
+                // Using the primary brand colors for the breakdown
+                backgroundColor: [CANARA_BLUE, ACCENT_YELLOW],
+                borderColor: ['#FFFFFF', '#FFFFFF'],
                 borderWidth: 2,
             },
         ],
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+        },
     };
 
     return (
@@ -89,42 +106,44 @@ const Dashboard = ({ summary }) => {
             {/* --- Top Statistic Cards --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 <Card className="shadow text-center">
-                    <BarChartOutlined className="text-3xl text-rose-500 mb-2" />
+                    <BarChartOutlined className="text-3xl mb-2" style={{ color: ACCENT_YELLOW }} />
                     <h3 className="text-lg font-semibold text-gray-600">Total Transactions</h3>
-                    <p className="text-2xl font-bold">{summary.totalTransactions}</p>
+                    <p className="text-2xl font-bold">{totalTransactions}</p>
                 </Card>
                 <Card className="shadow text-center">
-                    <PlusOutlined className="text-3xl text-green-500 mb-2" />
+                    <PlusOutlined className="text-3xl mb-2" style={{ color: CREDIT_GREEN }} />
                     <h3 className="text-lg font-semibold text-gray-600">Total Credit</h3>
-                    <p className="text-2xl font-bold">₹{summary.totalCredit.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₹{totalCredit.toLocaleString('en-IN')}</p>
                 </Card>
                 <Card className="shadow text-center">
-                    <MinusOutlined className="text-3xl text-red-500 mb-2" />
+                    <MinusOutlined className="text-3xl mb-2" style={{ color: DEBIT_RED }} />
                     <h3 className="text-lg font-semibold text-gray-600">Total Debit</h3>
-                    <p className="text-2xl font-bold">₹{summary.totalDebit.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₹{totalDebit.toLocaleString('en-IN')}</p>
                 </Card>
                 <Card className="shadow text-center">
-                    <DollarOutlined className="text-3xl text-blue-500 mb-2" />
+                    <DollarOutlined className="text-3xl mb-2" style={{ color: CANARA_BLUE }} />
                     <h3 className="text-lg font-semibold text-gray-600">Final Balance</h3>
-                    <p className="text-2xl font-bold">₹{summary.balance.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₹{balance.toLocaleString('en-IN')}</p>
                 </Card>
             </div>
 
             {/* --- Charts --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="shadow">
-                    <h3 className="text-lg font-semibold mb-4">Credit vs. Debit Amount</h3>
-                    <Bar data={barChartData} options={{ responsive: true }} />
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <Card className="shadow lg:col-span-3">
+                    <h3 className="text-lg font-semibold mb-4">Credit vs. Debit Comparison</h3>
+                    <div className="relative h-80">
+                        <Bar data={barChartData} options={chartOptions} />
+                    </div>
                 </Card>
-                <Card className="shadow flex flex-col items-center">
-                    <h3 className="text-lg font-semibold mb-4">Transaction Type Breakdown</h3>
-                    <div style={{ maxWidth: '250px', margin: '0 auto' }}>
-                        <Doughnut data={doughnutChartData} options={{ responsive: true }} />
+                <Card className="shadow lg:col-span-2 flex flex-col items-center">
+                    <h3 className="text-lg font-semibold mb-4">Amount Breakdown</h3>
+                    <div className="relative h-80 w-80">
+                        <Doughnut data={doughnutChartData} options={chartOptions} />
                     </div>
                 </Card>
             </div>
         </div>
-    )
+    );
 }
 
 export default Dashboard;
